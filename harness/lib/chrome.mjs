@@ -68,12 +68,23 @@ export async function screenshot(browser, html, selector, pngPath, { scale = 2 }
 }
 
 /**
- * Rasterises one SVG document to `pngPath`, on white.
+ * The page colour a v13 SVG is meant for: the fallback of the `--mermaid-background` its root
+ * declares. v13 paints no background of its own, so a dark theme drawn on white loses its
+ * light text; v12 SVGs give none and get white.
+ * @param {string} svg
+ */
+export function pageColor(svg) {
+  const root = /^<svg\b[^>]*>/.exec(svg)?.[0] ?? '';
+  return /--mermaid-background,(#[0-9a-fA-F]{3,8})\)/.exec(root)?.[1] ?? '#fff';
+}
+
+/**
+ * Rasterises one SVG document to `pngPath`, on the page colour it is meant for.
  * @param {import('puppeteer-core').Browser} browser
  * @param {string} svg
  * @param {string} pngPath
  */
 export function rasterize(browser, svg, pngPath) {
-  const html = `<!doctype html><html><body style="margin:0;background:#fff"><div id="d" style="display:inline-block">${svg}</div></body></html>`;
+  const html = `<!doctype html><html><body style="margin:0;background:#fff"><div id="d" style="display:inline-block;background:${pageColor(svg)}">${svg}</div></body></html>`;
   return screenshot(browser, html, '#d', pngPath);
 }
