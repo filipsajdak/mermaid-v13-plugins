@@ -9,3 +9,4 @@ export type * from './parser/index.ts';
 export { layoutC4 } from './layout/index.ts';
 export type { C4Layout } from './layout/index.ts';
 export { renderC4 } from './render/index.ts';
+export { c4ConfigDefaults } from './config.ts';

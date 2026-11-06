@@ -1,13 +1,20 @@
-import type { RenderContext } from '@mermaid-js/core';
-import type { C4Model } from '../parser/index.ts';
-
-/** Where everything of a C4 diagram goes, in px. */
-export interface C4Layout {
-  readonly width: number;
-  readonly height: number;
-}
-
-/** Lays out a C4 diagram. Stage 0: nothing to place yet. */
-export function layoutC4(_model: C4Model, _ctx: RenderContext): C4Layout {
-  return { width: 0, height: 0 };
-}
+export {
+  boundaryTitle,
+  layoutC4,
+  REL_LABEL_PAD,
+  relText,
+  shapeOf,
+  showsStereotype,
+  stereotypeOf,
+  tagsOf,
+  tagStyleOf,
+} from './layout.ts';
+export type {
+  C4Block,
+  C4Layout,
+  C4PlacedBoundary,
+  C4PlacedElement,
+  C4PlacedRel,
+  C4Section,
+  C4Shape,
+} from './layout.ts';

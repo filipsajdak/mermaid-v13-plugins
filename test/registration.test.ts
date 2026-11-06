@@ -61,6 +61,9 @@ describe('explicit registration of the c4 id', () => {
     await api.registerExternalDiagrams([c4], { replace: true });
     expect(api.detectType('C4Container\n')).toBe('c4');
     expect(api.supportsFormat('c4', 'svg')).toBe(true);
+    const r = await api.render('d', 'C4Container\n  Container(api, "API", "Go")');
+    expect(r.diagramType).toBe('c4');
+    expect(r.svg).toContain('>API</');
     // A parse error comes back as a syntax error with its line and column, as in v12.
     await expect(api.render('d', 'C4Container\n')).rejects.toMatchObject({ code: 'SYNTAX' });
   });
