@@ -46,6 +46,26 @@ export default defineConfig(
     },
   },
   {
+    // swimlane-beta is the flowchart syntax laid out in lanes: the plugin reuses the first-party
+    // flowchart plugin's parser and renderer, and lays out with our lifted swimlane engine.
+    files: ['packages/diagram-swimlane/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex:
+                '^(?!@mermaid-js/core(/|$)|@mermaid-js/diagram-flowchart$|@mermaid-v13-plugins/swimlane-engine$|\\.{1,2}/)',
+              message:
+                'The swimlane plugin imports only @mermaid-js/core, the flowchart plugin, the swimlane engine and its own files.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['harness/**/*.mjs', 'test/**/*.ts', 'packages/*/test/**/*.ts', 'eslint.config.js'],
     languageOptions: {
       globals: { ...globals.node },
