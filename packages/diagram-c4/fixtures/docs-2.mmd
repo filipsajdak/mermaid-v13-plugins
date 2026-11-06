@@ -1,0 +1,11 @@
+C4Container
+    title Container View - Order flow
+
+    Container_Boundary(shop, "Web shop") {
+        direction LR
+        Container(cart, "Cart", "Python", "Holds the items")
+        Container(order, "Order", "Python", "Creates the order")
+        Container(pay, "Payment", "Python", "Takes the payment")
+        Rel(cart, order, "Checks out")
+        Rel(order, pay, "Charges")
+    }

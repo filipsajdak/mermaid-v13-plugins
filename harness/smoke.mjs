@@ -13,12 +13,25 @@ import { placeholder } from './fixtures/placeholder-plugin.mjs';
 import { createRenderer } from './lib/mermaid.mjs';
 import { undeclaredAliases } from './lib/svg-checks.mjs';
 
-/** Each fixture and the labels its SVG must contain, as XML-escaped text. */
+/**
+ * Each fixture and the labels its SVG must contain, as XML-escaped text: the placeholder
+ * plugin's, and one real C4 diagram.
+ */
 const CASES = [
   {
     file: fileURLToPath(new URL('./fixtures/smoke/placeholder.mmd', import.meta.url)),
     labels: ['First box', 'Second box &amp; more', 'Third &lt;box&gt;'],
     absent: ['a comment is not a box'],
+  },
+  {
+    file: fileURLToPath(
+      new URL(
+        '../packages/diagram-c4/fixtures/e2e-pr-c4-1-should-render-a-simple-c4context-diagram.mmd',
+        import.meta.url,
+      ),
+    ),
+    labels: ['Banking Customer A', 'Internet Banking System', 'E-mail system', 'BankBoundary0'],
+    absent: [],
   },
 ];
 
