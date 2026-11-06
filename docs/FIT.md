@@ -1,14 +1,18 @@
 # How our v12 C4 and BPMN work fits Mermaid v13
 
-Legacy C4 can only reach the v13 alpha through an explicit `registerExternalDiagrams([c4], { replace: true })`.
-Discovery from `node_modules` skips it, and a plugin under a new id never sees C4 text.
+Legacy C4 fits the v13 plugin contract: all 57 legacy C4 sources render in Node with no DOM, and look like the converged v12 build's renders.
+The sources are mermaid's `develop` at 63333fd8d plus the open C4 pull requests listed in mermaid-js/mermaid#7849.
+Three things do not fit.
+It can only be registered explicitly, with `registerExternalDiagrams([c4], { replace: true })`, because discovery skips it.
+The two `c4` config keys the converged build adds cannot be declared by a plugin (a `BLOCKER`).
+And a boundary's own direction is dropped when a relationship crosses into it.
 Everything below is measured against `mermaid@13.0.0-alpha.1` and `@mermaid-js/core@13.0.0-alpha.1`, pinned exactly.
 
 Each row gives the v13 equivalent, a gap, or a `BLOCKER`, with the evidence behind it.
 `FITS` means the v13 contract already has what the v12 code needs.
 `GAP` means it works with extra code or a documented loss.
 `BLOCKER` means a plugin cannot do it at all through the public contract.
-`OPEN` means not assessed yet; the stage that will assess it is named.
+`OPEN` means not assessed yet.
 
 The v12 side is the converged build: `develop` plus our open pull requests (a local build, not published; the harness takes its renders as input).
 Bug checks use the released `mermaid@12.3.0` instead.
@@ -86,21 +90,31 @@ Evidence: `test/registration.test.ts`, "detection order"; the 12.3.0 column come
 
 ## Fit table: legacy C4
 
-| v12 dependency                    | v13 equivalent                                                                                    | status              | evidence                                                                                                         |
-| --------------------------------- | ------------------------------------------------------------------------------------------------- | ------------------- | ---------------------------------------------------------------------------------------------------------------- |
-| Registration and detection        | `registerExternalDiagrams(..., { replace: true })`                                                | FITS, explicit only | Registration above                                                                                               |
-| Parser (`c4Diagram.jison`)        | hand-written lexer and recursive descent on `@mermaid-js/core/parser-kit`; no grammar abstraction | OPEN, stage 1       |                                                                                                                  |
-| db and model (`c4Db.ts`)          | plain serialisable model returned by `parse`                                                      | OPEN, stage 1       |                                                                                                                  |
-| Layout (`c4LayoutData.ts`)        | `layoutKind: 'graph'`, `ctx.layout(LayoutGraph)`                                                  | OPEN, stage 1       |                                                                                                                  |
-| Shapes (person, cylinders, boxes) | `SvgWriter` with an allow-list of 18 tags                                                         | OPEN, stage 1       | `@mermaid-js/core/svg` `ALLOWED_TAGS` has no `marker`, `use`, `symbol`, `clipPath`, `pattern` or `foreignObject` |
-| d3 and DOM                        | none: SVG is written as text through `SvgWriter`                                                  | OPEN, stage 1       |                                                                                                                  |
-| Themes                            | `ctx.theme` and `--mermaid-*` variables                                                           | GAP, see note 1     | `harness/lib/svg-checks.mjs`, placeholder render                                                                 |
-| Config schema (`c4` section)      | core's `KEY_TREE` already holds a `c4` section with v12's `C4DiagramConfig` keys                  | OPEN, stage 1       | `@mermaid-js/core/dist/config/generated/keys.js`                                                                 |
-| Icons and sprites                 | `<image href>` through `checkImageUrl`: relative, http(s), or `data:image` png, jpeg, gif, webp   | OPEN, stage 1       | `@mermaid-js/core/dist/svg/url.js`                                                                               |
-| Text wrap and HTML labels         | `layoutLabel` wraps greedily at a width; HTML labels are removed (documented)                     | OPEN, stage 1       |                                                                                                                  |
-| Accessibility                     | `title`, `desc`, `role`, `aria-*` are on the allow-list                                           | OPEN, stage 1       |                                                                                                                  |
-| Security                          | the writer only emits allowed tags and branded values; `inertProblem` checks output               | OPEN, stage 1       |                                                                                                                  |
-| Packaging and types               | plugin packages need no DOM types; `mermaid`'s own types do                                       | FITS, see note 2    |                                                                                                                  |
+| v12 dependency                          | v13 equivalent                                                                           | status              | evidence                                                                                                                                                                                                           |
+| --------------------------------------- | ---------------------------------------------------------------------------------------- | ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Registration and detection              | `registerExternalDiagrams(..., { replace: true })`                                       | FITS, explicit only | Registration above                                                                                                                                                                                                 |
+| Parser (`c4Diagram.jison`)              | a hand-written scanner and recursive descent on `@mermaid-js/core/parser-kit`            | FITS                | note 3                                                                                                                                                                                                             |
+| db and model (`c4Db.ts`)                | a builder with no module state; the model is plain data                                  | FITS                | note 3                                                                                                                                                                                                             |
+| Language service                        | a facet with diagnostics, highlight categories and alias symbols; no completion or hover | FITS                | `src/language.ts`                                                                                                                                                                                                  |
+| Limits                                  | `ctx.limits` (`maxDepth`, `maxNodes`, `maxEdges`) as core's limit codes                  | FITS                | a nested boundary past `maxDepth` gives `DEPTH_LIMIT`, which core maps to a `LIMIT` error                                                                                                                          |
+| Layout: boundaries                      | `LayoutGroup` with `title` and `padding`                                                 | FITS                | every fixture keeps its elements inside their boundaries (`test/c4-render.test.ts`)                                                                                                                                |
+| Layout: relationship to a boundary      | `LayoutEdge.source`/`target` take a group id                                             | FITS                | the fixture for #4864 (`e2e-pr-c4-9-...`) draws `Rel(b1, ...)` from the boundary's border                                                                                                                          |
+| Layout: a boundary's own direction      | `LayoutGroup.direction`                                                                  | GAP                 | note 4                                                                                                                                                                                                             |
+| Layout: `Rel_U/D/L/R`                   | no direction hint on `LayoutEdge`                                                        | GAP, parity         | the converged build lays them out as `Rel` too (`e2e-pr-directional-relationships`)                                                                                                                                |
+| Layout: `UpdateLayoutConfig`            | no column count on `LayoutGraph`                                                         | GAP, parity         | the converged build ignores it too; the port warns `C4_LAYOUT_CONFIG_IGNORED`                                                                                                                                      |
+| Layout: `RelIndex` and C4Dynamic order  | numbered labels made by the plugin                                                       | FITS                | `e2e-pr-dynamic-diagram`, `e2e-pr-dynamic-repeated-pair`                                                                                                                                                           |
+| Layout: edge ends on the shape outline  | the engine ends edges on the box side; `LayoutNode.shape` is not read                    | GAP                 | note 5                                                                                                                                                                                                             |
+| Shapes (person, cylinder, queue, boxes) | `rect`, `circle` and `path` through `w.outline`; arrowheads as paths                     | FITS                | no shape needs a tag outside the allow-list, so there is no `<marker>`                                                                                                                                             |
+| d3 and DOM                              | none: labels measured by `ctx.measurer`, SVG written through `SvgWriter`                 | FITS                | lint bans DOM globals in plugin sources                                                                                                                                                                            |
+| Themes                                  | `ctx.theme` and `--mermaid-*` variables                                                  | GAP                 | notes 1 and 6                                                                                                                                                                                                      |
+| Config: v12's `c4` keys                 | core's schema has the `c4` section; the plugin's `configDefaults` fill it                | FITS                | `c4.wrap`, `c4.width`, the fonts and the palette colours all apply                                                                                                                                                 |
+| Config: converged-only keys             | none                                                                                     | BLOCKER             | note 7                                                                                                                                                                                                             |
+| Icons and sprites                       | nothing to port; `<image href>` would go through `checkImageUrl`                         | FITS                | the converged build draws no sprite image, `$sprite` only names a shape (`database`, `queue`); `checkImageUrl` allows relative, http(s) and `data:image` png, jpeg, gif and webp, not SVG data URLs (`svg/url.js`) |
+| Legend (`SHOW_LEGEND`)                  | nothing to port                                                                          | FITS, parity        | the converged grammar has no `SHOW_LEGEND`; `$legendText` and `$legendSprite` are parsed and kept in the model, not drawn                                                                                          |
+| Text wrap and HTML labels               | `layoutLabel` wraps greedily at a width; each line group has its own font                | FITS                | the converged build's `<b>` and `<small><i>` edge labels become bold and italic sections                                                                                                                           |
+| Accessibility                           | `<title>` and `<desc>` with `aria-labelledby` and `aria-describedby`, `role="img"`       | FITS                | `accTitle`, `accDescr`                                                                                                                                                                                             |
+| Security                                | every colour from the source through `checkColor`, every `$link` through `checkUrl`      | FITS                | `$link="javascript:alert(1)"` is dropped with `URL_REFUSED` (`spec-c4-link-2`)                                                                                                                                     |
+| Packaging and types                     | plugin packages need no DOM types; `mermaid`'s own types do                              | FITS                | note 2                                                                                                                                                                                                             |
 
 ### Notes
 
@@ -108,8 +122,49 @@ Evidence: `test/registration.test.ts`, "detection order"; the 12.3.0 column come
    The root's `style` declares only the theme aliases (`--_mb`, `--_nt`, ...) used so far, and the stream writer cannot change the root afterwards.
    A paint asked for later is used but never declared, so the browser draws black fills and invisible text, with no warning.
    Measured on the harness placeholder: the first version drew black boxes, and its root declared none of `--_ff`, `--_fs`, `--_mb`, `--_nb`, `--_nt`.
-   The state plugin avoids it by building every paint first.
-   The harness now reports this as `HARNESS_UNDECLARED_ALIAS`, and the smoke fails on it.
+   The state plugin avoids it by building every paint first, and so does the C4 renderer.
+   The harness reports it as `HARNESS_UNDECLARED_ALIAS`, and the smoke and `test/c4-render.test.ts` fail on it.
 2. **Types.**
    With `lib: ["ES2022"]`, strict flags and `skipLibCheck: false`, a plugin package typechecks against `@mermaid-js/core`'s declarations with no DOM library.
    A consumer of `mermaid` itself needs `lib: ["DOM"]`: `mermaid/dist/api.d.ts(80,31): error TS2304: Cannot find name 'Element'` (also `HTMLElement` in `dom.d.ts` and `index.d.ts`), even in a Node-only program.
+3. **Parser.**
+   parser-kit's `ParseState`, `TokenWriter` and `Diagnostics` were enough; no grammar abstraction was missed.
+   The v12 parser specs are ported (177 tests); with the parser stubbed to an empty model, 173 of them fail.
+   Two v12 behaviours are fixed rather than ported, each with a named test.
+   An unquoted argument ends at `)` and at the line end: in 12.3.0, `Person(a, Alice)` followed by `Person(b, "B")` gives one person labelled `Alice)\nPerson(b`.
+   A named argument in the label slot sets its own field: in 12.3.0, `Person(c, $sprite="users")` stores the label as `{ sprite: 'users' }` and sets no sprite.
+4. **A boundary's direction is dropped when a relationship crosses into it.**
+   The layered engine follows v12's dagre rule: "A group that an edge crosses inherits its parent's [direction] instead" (`LayoutGroup.direction` in `layout/types.d.ts`).
+   In `regression-boundary-direction`, `Web shop` lays out left to right, but `Warehouse`, which `Rel(buyer, pick, ...)` enters, stacks top to bottom.
+   The converged build lays both out left to right.
+   Whether `@mermaid-js/layout-elk` keeps the direction is not checked yet.
+5. **Edge ends.**
+   The engine reports which side of a box an edge meets, and ends it on that side.
+   The converged build ends an edge on the shape's outline: on the person's head arc, on a cylinder's curve.
+   Arrows that meet a person from above stop on the head's top only when they arrive at its centre.
+6. **Backgrounds and colours.**
+   A v13 SVG paints no background, so a dark-theme diagram on a white page loses its light title.
+   The converged build's SVG carries its background.
+   The C4 palette stays in config, as in v12, because a diagram plugin cannot declare theme variables.
+   The theme helped too: `theme.rgba('background')` and core's exported `parseColor`, `contrastRatio` and `formatColor` made v12's `readableOn` portable without khroma.
+   Core has the HSL steps it also needs (`shiftHsl`) but does not export them, so the port carries its own; v12's colour spec is ported as `colors.test.ts`.
+7. **A plugin cannot add keys to its own config section.**
+   The converged build adds `c4.showStereotypes` and `c4.boundaryDirection`; the alpha's schema has neither.
+   Front matter `c4: { showStereotypes: false }` gives `CONFIG_UNKNOWN_KEY`: `Unknown config key "c4.showStereotypes"; ignored.`, although the plugin's `configDefaults` declares the key.
+   An extension's config fragment cannot declare it either: registering one with `keys: { c4: { showStereotypes: 0 } }` throws `TypeError: Config fragment "c4-keys": "c4" is a core config key`.
+   Per-element `UpdateElementStyle(x, $showStereotype="false")` still works, because it is diagram syntax.
+   Both behaviours are pinned in `test/c4-render.test.ts`.
+
+## Parity with the converged build
+
+The harness renders all 57 fixtures and puts each next to the converged build's render (`pnpm render`, then `pnpm sheet`).
+Every element, boundary and relationship is drawn in both, the boundaries nest the same way, and `test/c4-render.test.ts` checks that no element overlaps another or leaves its boundary.
+These are the differences:
+
+| difference                                                                                                               | fixtures                                                                                                       | cause                                                                                  |
+| ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| Elements are placed differently                                                                                          | most                                                                                                           | the layered engine against the converged build's ELK; both route edges at right angles |
+| A crossed boundary stacks top to bottom                                                                                  | `regression-boundary-direction`                                                                                | note 4                                                                                 |
+| Stereotypes stay visible                                                                                                 | `e2e-nightly-update-element-style-show-stereotypes-config-off`                                                 | note 7                                                                                 |
+| `UpdateRelStyle` text colours and `$offsetX`/`$offsetY` show; offsets written for v12's grid can move a label onto a box | `docs-5`, `docs-6`, `e2e-nightly-c4-4-...`, `e2e-pr-c4-3-...`, `e2e-nightly-styling-update-relationship-style` | the converged build's renders show these labels uncoloured and on their line           |
+| Title in the theme font, labels slightly larger                                                                          | all                                                                                                            | v13's default theme font and size differ from v12's                                    |

@@ -15,12 +15,12 @@ Each plugin declares `@mermaid-js/core` as a peer dependency, at that exact vers
 
 ## Status
 
-| plugin    | package                           | keyword                                                                | status                                                                     |
-| --------- | --------------------------------- | ---------------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| Legacy C4 | `@mermaid-v13-plugins/diagram-c4` | `C4Context`, `C4Container`, `C4Component`, `C4Dynamic`, `C4Deployment` | not started (registers and detects; every diagram reports `C4_NOT_PORTED`) |
-| C4 beta   | -                                 | `c4-beta`                                                              | not started                                                                |
-| BPMN      | -                                 | `bpmn-beta`                                                            | not started                                                                |
-| Swimlane  | -                                 | `swimlane-beta`                                                        | not started                                                                |
+| plugin    | package                           | keyword                                                                | status                                                                                                                          |
+| --------- | --------------------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Legacy C4 | `@mermaid-v13-plugins/diagram-c4` | `C4Context`, `C4Container`, `C4Component`, `C4Dynamic`, `C4Deployment` | renders: all 57 legacy C4 sources of mermaid's docs, e2e and open C4 pull requests; the differences from v12 are in docs/FIT.md |
+| C4 beta   | -                                 | `c4-beta`                                                              | not started                                                                                                                     |
+| BPMN      | -                                 | `bpmn-beta`                                                            | not started                                                                                                                     |
+| Swimlane  | -                                 | `swimlane-beta`                                                        | not started                                                                                                                     |
 
 The stages are: not started, parses, renders, parity (matches the v12 render of every fixture).
 
@@ -46,7 +46,9 @@ mermaid.initialize({ discovery: false });
 // The alpha knows the `c4` type but ships no package for it, so the plugin takes its slot.
 await mermaid.registerExternalDiagrams([c4], { replace: true });
 
-const { svg, warnings } = await mermaid.render('diagram-1', 'C4Context\n  title System Context\n');
+const source =
+  'C4Context\n  Person(user, "User")\n  System(app, "App")\n  Rel(user, app, "Uses")\n';
+const { svg, warnings } = await mermaid.render('diagram-1', source);
 ```
 
 The harness makes the same calls (`harness/lib/mermaid.mjs`).
