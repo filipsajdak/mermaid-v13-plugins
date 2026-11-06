@@ -1,0 +1,4 @@
+dist/
+harness/out/
+pnpm-lock.yaml
+*.mmd
