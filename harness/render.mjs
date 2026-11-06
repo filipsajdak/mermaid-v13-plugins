@@ -12,12 +12,12 @@
  */
 import { readdir, readFile, stat, mkdir, writeFile, rm } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
-import { pathToFileURL } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import { parseArgs } from 'node:util';
 import { createRenderer } from './lib/mermaid.mjs';
 import { rasterize, withBrowser } from './lib/chrome.mjs';
 
-const DEFAULT_OUT = new URL('./out/', import.meta.url);
+const DEFAULT_OUT = fileURLToPath(new URL('./out/', import.meta.url));
 
 /**
  * Every `.mmd` file named or inside a named directory (not recursive), sorted.
@@ -85,7 +85,7 @@ async function main() {
     );
     process.exit(2);
   }
-  const out = values.out ? resolve(values.out) : DEFAULT_OUT.pathname;
+  const out = values.out ? resolve(values.out) : DEFAULT_OUT;
   await mkdir(out, { recursive: true });
   const extra = (await Promise.all(values.plugin.map(pluginsOf))).flat();
   const renderer = await createRenderer({ extra });

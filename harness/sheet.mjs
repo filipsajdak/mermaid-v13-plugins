@@ -16,6 +16,7 @@ import { existsSync } from 'node:fs';
 import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
 import { rasterize, screenshot, withBrowser } from './lib/chrome.mjs';
 
@@ -77,7 +78,7 @@ async function main() {
   const { values } = parseArgs({
     options: {
       v12: { type: 'string' },
-      v13: { type: 'string', default: new URL('./out/', import.meta.url).pathname },
+      v13: { type: 'string', default: fileURLToPath(new URL('./out/', import.meta.url)) },
       out: { type: 'string' },
       'v12-label': { type: 'string', default: 'v12 reference' },
     },

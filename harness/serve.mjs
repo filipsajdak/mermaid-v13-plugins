@@ -8,8 +8,9 @@
 import { createServer } from 'node:http';
 import { readFile, stat } from 'node:fs/promises';
 import { extname, join, normalize, resolve, sep } from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const ROOT = resolve(new URL('./out/', import.meta.url).pathname);
+const ROOT = resolve(fileURLToPath(new URL('./out/', import.meta.url)));
 const PORT = Number(process.env['PORT'] ?? 9238);
 /** @type {Record<string, string>} */
 const TYPES = {
