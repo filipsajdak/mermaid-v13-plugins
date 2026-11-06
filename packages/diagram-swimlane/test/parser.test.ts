@@ -128,3 +128,97 @@ describe('parseSwimlane', () => {
     }
   });
 });
+
+describe('phase lines that cannot be scanned cheaply', () => {
+  /** Generous for one linear pass over 50,000 characters, far below a quadratic one. */
+  const BOUND_MS = 250;
+  const LONG = 50_000;
+  const timed = (text: string) => {
+    const start = performance.now();
+    const result = parseSwimlane(text);
+    return { ms: performance.now() - start, result };
+  };
+
+  it.each([
+    ['an unclosed bracket', `swimlane-beta\nphase a[${' '.repeat(LONG)}`],
+    ['an unterminated quote', `swimlane-beta\nphase a["${' '.repeat(LONG)}`],
+    ['an unterminated quote and bracket', `swimlane-beta\nphase a["${'x '.repeat(LONG / 2)}`],
+    ['trailing blanks then text', `swimlane-beta\nphase a${' '.repeat(LONG)}x`],
+    ['many statement ends', `swimlane-beta\n${';'.repeat(LONG)}`],
+    ['many short lines', `swimlane-beta\n${'phase\n'.repeat(LONG / 6)}`],
+  ])('reads %s in linear time', (_name, text) => {
+    // Warm up once, so the bound measures the scan and not the first compile.
+    parseSwimlane('swimlane-beta\nphase a["A"]\na@{ phase: a }');
+    const { ms } = timed(text);
+
+    expect(ms).toBeLessThan(BOUND_MS);
+  });
+
+  it('caps the phases at the node limit', () => {
+    const text = `swimlane-beta\n${['a', 'b', 'c'].map((id) => `phase ${id}`).join('\n')}\n`;
+    const { diagnostics, model } = parseSwimlane(text, { maxNodes: 2 });
+
+    expect(model.phases.map((p) => p.id)).toEqual(['a', 'b']);
+    expect(diagnostics.map((d) => d.code)).toContain('NODE_LIMIT');
+  });
+});
+
+describe('ranges after blanking the phase lines', () => {
+  /** The phases example of the v12 syntax page (`swimlanes.md`, "Phases"). */
+  const DOCS_PHASES = [
+    'swimlane-beta LR',
+    '  phase intake["Intake"]',
+    '  phase review["Review"]',
+    '  phase closeout["Closeout"]',
+    '',
+    '  subgraph underwriting [Underwriting]',
+    '    receive["Receive request"]@{ phase: intake }',
+    '    assess["Assess"]@{ phase: review }',
+    '    sign["Sign off"]@{ phase: closeout }',
+    '  end',
+    '',
+    '  subgraph servicing [Servicing]',
+    '    log["Log request"]@{ phase: intake }',
+    '    close["Close file"]@{ phase: closeout }',
+    '  end',
+    '',
+    '  log --> receive --> assess --> sign --> close',
+  ];
+  const lineOf = (text: string, offset: number) => text.slice(0, offset).split('\n').length - 1;
+
+  it('parses the docs example without a diagnostic', () => {
+    expect(parseSwimlane(DOCS_PHASES.join('\n')).diagnostics).toEqual([]);
+  });
+
+  it.each([
+    ['after the phases', 4, '  a --> --> b'],
+    ['between two phases', 2, '  a --> --> b'],
+    ['inside a lane', 7, '    x[unclosed'],
+    ['at the end', DOCS_PHASES.length, '  a --> --> b'],
+  ])('points an error %s at its own line', (_name, at, bad) => {
+    const lines = [...DOCS_PHASES];
+    lines.splice(at, 0, bad);
+    const text = lines.join('\n');
+    const errors = parseSwimlane(text).diagnostics.filter((d) => d.severity === 'error');
+
+    expect(errors.length).toBeGreaterThan(0);
+    expect(lineOf(text, errors[0]!.range.start)).toBe(at);
+  });
+
+  it('points a malformed phase line, which is not blanked, at its own line', () => {
+    const lines = [...DOCS_PHASES];
+    lines.splice(2, 0, '  phase broken["Unclosed');
+    const text = lines.join('\n');
+    const [first] = parseSwimlane(text).diagnostics;
+
+    expect(first && lineOf(text, first.range.start)).toBe(2);
+  });
+
+  it('points a phase error at the node that names it', () => {
+    const text = DOCS_PHASES.join('\n').replace('phase: review', 'phase: reveiw');
+    const [d] = parseSwimlane(text).diagnostics;
+
+    expect(d?.code).toBe('SWIMLANE_PHASE_UNKNOWN');
+    expect(lineOf(text, d!.range.start)).toBe(7);
+  });
+});

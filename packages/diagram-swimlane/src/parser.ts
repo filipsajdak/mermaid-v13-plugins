@@ -1,4 +1,5 @@
 import type { Diagnostic, Range } from '@mermaid-js/core/parser-kit';
+import { DEFAULT_LIMITS, LIMIT_CODES } from '@mermaid-js/core/limits';
 import { diagramStart, isYamlMap, parseYaml, preprocess } from '@mermaid-js/core/preprocess';
 import type { PreprocessResult } from '@mermaid-js/core/preprocess';
 import { parseFlowchart } from '@mermaid-js/diagram-flowchart';
@@ -26,33 +27,53 @@ interface PhaseStatement {
  * `phase id` or `phase id[Title]` / `phase id["Title"]`, alone on its line or ended by `;`.
  * v12 lexed `phase` as a keyword only at the start of a statement and only in swimlane-beta;
  * anywhere else it is an id, so `phase --> x` and `style phase fill:#f00` are left alone.
+ *
+ * Sticky, so it is tried at one offset without copying the rest of the text, and every part
+ * is one character class, so a long unclosed `[` or quote costs one pass (no backtracking
+ * between neighbouring quantifiers). The title's quotes are told apart in code.
  */
-const PHASE =
-  /^([^\S\n]*)phase[^\S\n]+([A-Za-z0-9_][\w-]*)(?:\[\s*(?:"([^"\n]*)"|([^\]"\n]*?))\s*\])?[^\S\n]*(?=;|\n|$)/;
+const PHASE = /([^\S\n]*)phase[^\S\n]+([A-Za-z0-9_][\w-]*)(?:\[([^\]\n]*)\])?[^\S\n]*(?=;|\n|$)/y;
+
+/** The title inside `[…]`: quoted (and then possibly markdown), or bare and trimmed. */
+function phaseTitle(
+  body: string | undefined,
+  id: string,
+): Pick<SwimlanePhase, 'label' | 'labelType'> {
+  const title = body?.trim();
+  if (title === undefined || title === '') return { label: id, labelType: 'text' };
+  const quoted = title.length >= 2 && title.startsWith('"') && title.endsWith('"');
+  const inner = quoted ? title.slice(1, -1) : title;
+  const markdown = quoted && inner.length >= 2 && inner.startsWith('`') && inner.endsWith('`');
+  return markdown
+    ? { label: inner.slice(1, -1), labelType: 'markdown' }
+    : { label: inner, labelType: 'text' };
+}
 
 /** Every phase statement after `start`, at a line start or after a `;`. */
 function phaseStatements(text: string, start: number): PhaseStatement[] {
   const found: PhaseStatement[] = [];
-  const statementStart = /(^|[\n;])/g;
-  statementStart.lastIndex = start;
-  for (let m = statementStart.exec(text); m !== null; m = statementStart.exec(text)) {
-    const at = m.index + (m[1] ?? '').length;
-    const hit = PHASE.exec(text.slice(at));
-    const [whole, indent = '', id, quoted, bare] = hit ?? [];
+  let line = -1;
+  let semi = -1;
+  for (let at = start; at <= text.length;) {
+    PHASE.lastIndex = at;
+    const hit = PHASE.exec(text);
+    const [whole, indent = '', id, body] = hit ?? [];
     if (whole !== undefined && id !== undefined) {
-      const markdown = quoted !== undefined && /^`[^]*`$/.test(quoted);
       const idStart = text.indexOf(id, at + indent.length + 'phase'.length);
       found.push({
-        phase: {
-          id,
-          label: markdown ? quoted.slice(1, -1) : (quoted ?? bare?.trim() ?? id),
-          labelType: markdown ? 'markdown' : 'text',
-        },
+        phase: { id, ...phaseTitle(body, id) },
         range: { start: at + indent.length, end: at + whole.length },
         idRange: { start: idStart, end: idStart + id.length },
       });
     }
-    if (statementStart.lastIndex === m.index) statementStart.lastIndex++;
+    // Each search starts where the last one ended, so the whole scan is one pass.
+    if (line < at) line = text.indexOf('\n', at);
+    if (semi < at) semi = text.indexOf(';', at);
+    if (line < 0) line = Infinity;
+    if (semi < 0) semi = Infinity;
+    const next = Math.min(line, semi);
+    if (next === Infinity) break;
+    at = next + 1;
   }
   return found;
 }
@@ -140,11 +161,22 @@ function readPhases(
   statements: readonly PhaseStatement[],
   ast: FlowDocument,
   vertices: ReadonlySet<string>,
+  maxPhases: number,
   report: (d: Diagnostic) => void,
 ): Pick<SwimlaneModel, 'phases' | 'nodePhases'> {
   const declaredAt = new Map<string, number>();
   const phases: SwimlanePhase[] = [];
   for (const s of statements) {
+    // A phase is drawn like a node, so the integrator's node limit caps phases too.
+    if (phases.length >= maxPhases) {
+      report({
+        severity: 'error',
+        code: LIMIT_CODES.maxNodes,
+        message: `Phase limit exceeded: the diagram declares more than ${String(maxPhases)} phases. The limit is set by the page or app that renders the diagram.`,
+        range: s.range,
+      });
+      break;
+    }
     if (declaredAt.has(s.phase.id)) {
       report({
         severity: 'error',
@@ -200,8 +232,13 @@ export function parseSwimlane(
   );
   const own: Diagnostic[] = [];
   const vertices = new Set(flow.model.vertices.map((v) => v.id));
-  const { phases, nodePhases } = readPhases(text, statements, flow.ast, vertices, (d) =>
-    own.push(d),
+  const { phases, nodePhases } = readPhases(
+    text,
+    statements,
+    flow.ast,
+    vertices,
+    options.maxNodes ?? DEFAULT_LIMITS.maxNodes,
+    (d) => own.push(d),
   );
   const diagnostics = [...flow.diagnostics, ...own].sort((a, b) => a.range.start - b.range.start);
   return {
