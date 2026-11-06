@@ -59,4 +59,47 @@ export default defineConfig(
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
+  {
+    // The swimlane engine is lifted from mermaid v12 and kept close to it, so a diff against v12
+    // stays readable. v12 linted it without the type-checked strict rules; the DOM ban and the
+    // import rule below still hold. New code in the package is held to them by review.
+    files: ['packages/swimlane-engine/src/**/*.ts'],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-unnecessary-type-conversion': 'off',
+      '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'off',
+      '@typescript-eslint/no-confusing-void-expression': 'off',
+      '@typescript-eslint/restrict-plus-operands': 'off',
+      '@typescript-eslint/no-deprecated': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-useless-assignment': 'off',
+      // The engine imports nothing but its own files.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { regex: '^(?!\\.{1,2}/)', message: 'The swimlane engine imports only its own files.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Its v12 specs also use vitest and node.
+    files: [
+      'packages/swimlane-engine/src/**/*.spec.ts',
+      'packages/swimlane-engine/src/**/__tests__/**/*.ts',
+    ],
+    languageOptions: { globals: { ...globals.node } },
+    rules: { 'no-restricted-imports': 'off', 'no-restricted-globals': 'off' },
+  },
 );

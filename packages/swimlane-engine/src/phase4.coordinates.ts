@@ -1,0 +1,463 @@
+import type { Graph, OrderedLayers, Coordinates, NodeId, EdgeRef, Node } from './helpers.js';
+import { COORDINATES } from './config.js';
+import type { PhaseGrowth } from './phases.js';
+import { reservePhaseRoom } from './phases.js';
+import { flowAxisStretch } from './direction/lrTransform.js';
+import { createTopLaneResolver, resolveTopLaneOrder } from './phase2.options.js';
+import { anchorFootprints, defaultAnchorSide, type AnchorSide } from './anchoredNodes.js';
+
+const OPPOSITE_SIDE: Record<AnchorSide, AnchorSide> = {
+  left: 'right',
+  right: 'left',
+  top: 'bottom',
+  bottom: 'top',
+};
+
+/** The length of a run of nodes along the lane, with the room each node's stood-off nodes take between it and its neighbours. */
+function runLength(
+  extents: number[],
+  leadReaches: number[],
+  trailReaches: number[],
+  nodeGap: number
+): number {
+  const between = extents
+    .slice(1)
+    .reduce((sum, _extent, i) => sum + trailReaches[i] + leadReaches[i + 1], 0);
+  return extents.reduce((a, b) => a + b, 0) + between + nodeGap * Math.max(0, extents.length - 1);
+}
+
+type LaneHalves = Map<string | null, { left: number; right: number }>;
+
+/** Widens a lane so it holds `width` centred on its axis, which keeps its nodes where they were. */
+function holdLaneWidth(halves: LaneHalves, lane: string | null, width: number): void {
+  const half = halves.get(lane);
+  if (half) {
+    half.left = Math.max(half.left, width / 2);
+    half.right = Math.max(half.right, width / 2);
+  }
+}
+
+export interface CoordOptions {
+  layerGap?: number; // vertical distance between layers
+  nodeGap?: number; // horizontal gap between siblings inside a lane
+  laneGap?: number; // horizontal gap between lanes (clusters)
+  direction?: 'TB' | 'LR' | 'BT' | 'RL'; // layout direction for proper spacing
+
+  spreadByOwnExtent?: boolean;
+
+  gapIsRoomBetween?: boolean;
+  laneOrder?: string[];
+  phaseGrowth?: PhaseGrowth;
+}
+
+/** A labelled edge within one rank: its label sits in the target's row. */
+interface RowLabel {
+  labelId: NodeId;
+  rank: number;
+  lane: string | null;
+  /** The side of the row's nodes the edge comes in from. */
+  side: 'before' | 'after';
+}
+
+/** A labelled edge whose label spans the gap between two ranks. */
+interface GapLabel {
+  labelId: NodeId;
+  start: NodeId;
+  end: NodeId;
+  gap: number;
+  crossesLanes: boolean;
+}
+
+/**
+ * Positions every node, and seeds each edge label (which has no rank) where the
+ * layout keeps room for it:
+ * - the label of an edge between two ranks widens the gap between them by the
+ *   label's extent along the flow, in every direction;
+ * - the label of an edge within one rank (a cross-lane edge) sits in that row,
+ *   beyond the target lane's nodes on the side the edge comes in from. The lane
+ *   widens on both sides, so its nodes stay centred where they would be without
+ *   the label.
+ */
+export function assignCoordinates(
+  ordered: OrderedLayers,
+  gWithDummies: Graph,
+  opts?: CoordOptions
+): Coordinates {
+  const layerGap = opts?.layerGap ?? COORDINATES.DEFAULT_LAYER_GAP;
+  const nodeGap = opts?.nodeGap ?? COORDINATES.DEFAULT_NODE_GAP;
+  const laneGap = opts?.laneGap ?? nodeGap * 2;
+  const direction = opts?.direction ?? 'TB';
+  const isHorizontal = direction === 'LR' || direction === 'RL';
+
+  const x: Record<NodeId, number> = Object.create(null);
+  const y: Record<NodeId, number> = Object.create(null);
+
+  const labelById = new Map<NodeId, Node>(
+    (gWithDummies.layout?.nodes ?? []).filter((n) => n.isEdgeLabel).map((n) => [n.id, n])
+  );
+  const getNode = (id: NodeId) => labelById.get(id) ?? gWithDummies.nodeById.get(id);
+  const getWidth = (id: NodeId) => getNode(id)?.width ?? 0;
+  const getHeight = (id: NodeId) => getNode(id)?.height ?? 0;
+
+  const spreadByOwnExtent = opts?.spreadByOwnExtent ?? false;
+  const crossExtent = (id: NodeId) =>
+    isHorizontal && spreadByOwnExtent ? getHeight(id) : getWidth(id);
+
+  const inSomeFlow = new Set<NodeId>();
+  for (const e of gWithDummies.edges) {
+    inSomeFlow.add(e.src);
+    inSomeFlow.add(e.dst);
+  }
+
+  const topLaneOfNode = createTopLaneResolver(gWithDummies);
+  const labelLane = new Map<NodeId, string | null>();
+  const topLaneOf = (id: NodeId) =>
+    labelLane.has(id) ? (labelLane.get(id) ?? null) : topLaneOfNode(id);
+  const laneOrderGlobal = resolveTopLaneOrder(gWithDummies, opts?.laneOrder);
+
+  const lanesUsedSet = new Set<string | null>();
+  for (const layer of ordered.layers) {
+    for (const id of layer) {
+      lanesUsedSet.add(topLaneOfNode(id));
+    }
+  }
+  const hasNullLane = lanesUsedSet.has(null);
+  const lanesUsed = laneOrderGlobal.filter((L) => lanesUsedSet.has(L));
+  const laneOrderColumns: (string | null)[] = [...(hasNullLane ? [null] : []), ...lanesUsed];
+
+  const layers = ordered.layers;
+  const rankOf = new Map<NodeId, number>();
+  for (const [li, layer] of layers.entries()) {
+    for (const id of layer) {
+      rankOf.set(id, li);
+    }
+  }
+  const rowLabels: RowLabel[] = [];
+  const gapLabels: GapLabel[] = [];
+  const unrankedLabels: { labelId: NodeId; near: NodeId }[] = [];
+  for (const edge of gWithDummies.layout?.edges ?? []) {
+    const labelId = edge.labelNodeId;
+    const start = edge.start;
+    const end = edge.end;
+    if (!labelId || !labelById.has(labelId) || start == null || end == null) {
+      continue;
+    }
+    const rs = rankOf.get(start);
+    const rt = rankOf.get(end);
+    if (rs == null || rt == null) {
+      // An endpoint without a rank leaves the label nothing to sit between.
+      unrankedLabels.push({ labelId, near: rs == null ? end : start });
+      continue;
+    }
+    labelLane.set(labelId, topLaneOfNode(end));
+    if (rs === rt) {
+      const column = (id: NodeId) => laneOrderColumns.indexOf(topLaneOfNode(id));
+      rowLabels.push({
+        labelId,
+        rank: rt,
+        lane: topLaneOfNode(end),
+        side: start !== end && column(start) < column(end) ? 'before' : 'after',
+      });
+      continue;
+    }
+    const lo = Math.min(rs, rt);
+    const hi = Math.max(rs, rt);
+    gapLabels.push({
+      labelId,
+      start,
+      end,
+      gap: lo + Math.floor((hi - lo - 1) / 2),
+      crossesLanes: topLaneOfNode(start) !== topLaneOfNode(end),
+    });
+  }
+
+  const layerHeights: number[] = layers.map((layer) =>
+    layer.reduce((m, v) => Math.max(m, getHeight(v)), 0)
+  );
+  for (const { labelId, rank } of rowLabels) {
+    layerHeights[rank] = Math.max(layerHeights[rank], getHeight(labelId));
+  }
+
+  // LR/RL transforms turn width into horizontal span, so widen layer gaps up front.
+  const extraLayerGaps: number[] = layers.map(() => 0);
+  if (isHorizontal) {
+    for (let i = 0; i + 1 < layers.length; i++) {
+      const thisLayerMaxWidth = layers[i].reduce((m, v) => Math.max(m, getWidth(v)), 0);
+      const nextLayerMaxWidth = layers[i + 1].reduce((m, v) => Math.max(m, getWidth(v)), 0);
+      const thisLayerMaxHeight = layerHeights[i];
+      const nextLayerMaxHeight = layerHeights[i + 1];
+
+      const normalSpacing = thisLayerMaxHeight / 2 + nextLayerMaxHeight / 2;
+      const requiredSpacing =
+        (thisLayerMaxWidth + nextLayerMaxWidth) / 2 + (opts?.gapIsRoomBetween ? layerGap : 0);
+      extraLayerGaps[i] = Math.max(0, requiredSpacing - normalSpacing - layerGap);
+    }
+  }
+  // A gap holding a label grows by the label's extent along the flow plus clearance
+  // on both sides. It keeps its own spacing as well, because that is where the router
+  // runs edges across the gap, and a label squeezed into it has nowhere to dodge them.
+  // Labels sharing a gap sit side by side, so the tallest one decides.
+  // The LR/RL transform stretches the flow axis, so a label's extent is reserved divided
+  // by that stretch and measures its own width once transformed.
+  const flowStretch = isHorizontal ? flowAxisStretch(gWithDummies.layout?.nodes ?? []) : 1;
+  const labelGapNeed: number[] = layers.map(() => 0);
+  for (const { labelId, gap } of gapLabels) {
+    const extent = isHorizontal ? getWidth(labelId) : getHeight(labelId);
+    const need = (extent + 2 * COORDINATES.EDGE_LABEL_CLEARANCE) / flowStretch;
+    labelGapNeed[gap] = Math.max(labelGapNeed[gap], need);
+  }
+  for (const [gap, need] of labelGapNeed.entries()) {
+    extraLayerGaps[gap] += need;
+  }
+  reservePhaseRoom(extraLayerGaps, layers, gWithDummies.layout, opts);
+
+  const footprints = anchorFootprints(gWithDummies.layout?.nodes ?? [], direction);
+  const trailingSide = defaultAnchorSide('final', direction);
+  const reachOn = (side: AnchorSide) => (id: NodeId) => footprints.get(id)?.[side]?.beyond ?? 0;
+  const reachAfter = reachOn(trailingSide);
+  const reachBefore = reachOn(OPPOSITE_SIDE[trailingSide]);
+
+  const runHalves = (
+    ids: NodeId[],
+    extentOf: (id: NodeId) => number
+  ): { spread: NodeId[]; beside: NodeId[]; left: number; right: number; lead: number } => {
+    const centred = ids.filter((id) => inSomeFlow.has(id));
+    const loose = ids.filter((id) => !inSomeFlow.has(id));
+    const spread = centred.length > 0 ? centred : loose;
+    const beside = centred.length > 0 ? loose : [];
+
+    const total = runLength(
+      spread.map(extentOf),
+      spread.map(reachBefore),
+      spread.map(reachAfter),
+      nodeGap
+    );
+    const lead = spread.length > 0 ? reachBefore(spread[0]) : 0;
+    let tail = spread.length > 0 ? reachAfter(spread[spread.length - 1]) : 0;
+    for (const id of beside) {
+      tail += nodeGap + reachBefore(id) + extentOf(id) + reachAfter(id);
+    }
+    return { spread, beside, left: total / 2 + lead, right: total / 2 + tail, lead };
+  };
+
+  const laneSizeExtent = (id: NodeId) => Math.max(getWidth(id), crossExtent(id));
+
+  const laneHalves: LaneHalves = new Map();
+  for (const L of laneOrderColumns) {
+    laneHalves.set(L, { left: 0, right: 0 });
+  }
+  for (const layer of layers) {
+    const perLane = new Map<string | null, NodeId[]>();
+    for (const id of layer) {
+      const L = topLaneOf(id);
+      perLane.set(L, [...(perLane.get(L) ?? []), id]);
+    }
+    for (const [L, ids] of perLane) {
+      const half = laneHalves.get(L);
+      if (!half) {
+        continue;
+      }
+      const { left, right } = runHalves(ids, (id) =>
+        L === null ? getWidth(id) : laneSizeExtent(id)
+      );
+      half.left = Math.max(half.left, left);
+      half.right = Math.max(half.right, right);
+    }
+  }
+  // Labels between ranks are anchored inside their lane, so the lane must hold them.
+  // Those in one gap and lane sit side by side, so the lane holds their combined width.
+  const gapLabelGroups = new Map<string, GapLabel[]>();
+  for (const label of gapLabels) {
+    const key = `${label.gap}:${topLaneOf(label.labelId)}`;
+    const group = gapLabelGroups.get(key);
+    if (group) {
+      group.push(label);
+    } else {
+      gapLabelGroups.set(key, [label]);
+    }
+  }
+  for (const group of gapLabelGroups.values()) {
+    const L = topLaneOf(group[0].labelId);
+    if (L !== null) {
+      const span = group.reduce(
+        (sum, l, i) => sum + getWidth(l.labelId) + (i > 0 ? nodeGap : 0),
+        0
+      );
+      holdLaneWidth(laneHalves, L, span);
+    }
+  }
+  // Labels in a row stack outward from the row's nodes on their side. The lane grows
+  // by the wider side on both sides, so the nodes keep the lane's centre.
+  const rowLabelSpans = new Map<string, number>();
+  for (const { labelId, rank, lane, side } of rowLabels) {
+    const key = `${rank}:${lane}:${side}`;
+    rowLabelSpans.set(key, (rowLabelSpans.get(key) ?? 0) + nodeGap + getWidth(labelId));
+  }
+  const rowLabelSpan = (rank: number, lane: string | null, side: RowLabel['side']) =>
+    rowLabelSpans.get(`${rank}:${lane}:${side}`) ?? 0;
+  for (const { rank, lane } of rowLabels) {
+    const nodesWidth = layers[rank]
+      .filter((id) => topLaneOf(id) === lane)
+      .reduce((sum, id, i) => sum + getWidth(id) + (i > 0 ? nodeGap : 0), 0);
+    const side = Math.max(rowLabelSpan(rank, lane, 'before'), rowLabelSpan(rank, lane, 'after'));
+    holdLaneWidth(laneHalves, lane, nodesWidth + 2 * side);
+  }
+
+  const laneAxis = new Map<string | null, number>();
+  {
+    const widths = laneOrderColumns.map((L) => {
+      const half = laneHalves.get(L);
+      return (half?.left ?? 0) + (half?.right ?? 0);
+    });
+    const totalW =
+      widths.reduce((a, b) => a + b, 0) + laneGap * Math.max(0, laneOrderColumns.length - 1);
+    let cursor = -totalW / 2;
+    for (let i = 0; i < laneOrderColumns.length; i++) {
+      const L = laneOrderColumns[i];
+      const w = widths[i] ?? 0;
+      laneAxis.set(L, cursor + (laneHalves.get(L)?.left ?? w / 2));
+      cursor += w;
+      if (i < laneOrderColumns.length - 1) {
+        cursor += laneGap;
+      }
+    }
+  }
+
+  const gapCenterY: number[] = [];
+  let yOffset = 0;
+  for (const [li, layer] of layers.entries()) {
+    const layerH = layerHeights[li] ?? 0;
+
+    const byLane = new Map<string | null, NodeId[]>();
+    for (const id of layer) {
+      const laneId = topLaneOf(id);
+      const arr = byLane.get(laneId) ?? [];
+      arr.push(id);
+      byLane.set(laneId, arr);
+    }
+
+    for (const L of laneOrderColumns) {
+      const nodesInLane = byLane.get(L) ?? [];
+      if (nodesInLane.length === 0) {
+        continue;
+      }
+      const extentOf = (id: NodeId) => (L === null ? getWidth(id) : crossExtent(id));
+      const axis = laneAxis.get(L) ?? 0;
+      const { spread, beside, left, lead } = runHalves(nodesInLane, extentOf);
+
+      const extents = spread.map(extentOf);
+      const leadReaches = spread.map(reachBefore);
+      const trailReaches = spread.map(reachAfter);
+      let start = axis - left + lead;
+      for (const [i, id] of spread.entries()) {
+        const w = extents[i];
+        x[id] = start + w / 2;
+        y[id] = yOffset + layerH / 2;
+        start += w;
+        if (i < spread.length - 1) {
+          start += trailReaches[i] + leadReaches[i + 1] + nodeGap;
+        }
+      }
+      start += trailReaches.length > 0 ? trailReaches[trailReaches.length - 1] : 0;
+      for (const id of beside) {
+        const w = extentOf(id);
+        start += nodeGap + reachBefore(id);
+        x[id] = start + w / 2;
+        y[id] = yOffset + layerH / 2;
+        start += w + reachAfter(id);
+      }
+    }
+
+    const gapSize = layerGap + (extraLayerGaps[li] ?? 0);
+    gapCenterY[li] = yOffset + layerH + gapSize / 2;
+    yOffset += layerH + gapSize;
+  }
+
+  // A row label goes beyond the row's nodes in its lane, on the side the edge comes
+  // in from; several on one side stack outward in the order they were declared.
+  const rowEdge = new Map<string, number>();
+  for (const { labelId, rank, lane, side } of rowLabels) {
+    const key = `${rank}:${lane}:${side}`;
+    if (!rowEdge.has(key)) {
+      const inRow = layers[rank].filter((id) => topLaneOf(id) === lane);
+      const edges = inRow.map((id) =>
+        side === 'before' ? x[id] - getWidth(id) / 2 : x[id] + getWidth(id) / 2
+      );
+      rowEdge.set(key, side === 'before' ? Math.min(...edges) : Math.max(...edges));
+    }
+    const w = getWidth(labelId);
+    const at = rowEdge.get(key)! + (side === 'before' ? -1 : 1) * (nodeGap + w / 2);
+    x[labelId] = at;
+    y[labelId] = y[layers[rank].find((id) => topLaneOf(id) === lane)!];
+    rowEdge.set(key, at + (side === 'before' ? -1 : 1) * (w / 2));
+  }
+
+  // A label between ranks starts in the middle of its gap: over the target, where
+  // the router drops a cross-lane edge into the target's lane, or between the two
+  // ends of an edge inside one lane.
+  // Labels that would start on top of each other in one gap and lane are spread side
+  // by side, in the order they were declared, around where they would have started.
+  for (const group of gapLabelGroups.values()) {
+    const wanted = group.map(({ start, end, crossesLanes }) =>
+      crossesLanes ? x[end] : ((x[start] ?? 0) + (x[end] ?? 0)) / 2
+    );
+    const order = group.map((_, i) => i).sort((a, b) => wanted[a] - wanted[b] || a - b);
+    const placed: number[] = [];
+    let right = -Infinity;
+    for (const i of order) {
+      const w = getWidth(group[i].labelId);
+      placed[i] = Math.max(wanted[i], right + nodeGap + w / 2);
+      right = placed[i] + w / 2;
+    }
+    const mean = (values: number[]) => values.reduce((a, b) => a + b, 0) / values.length;
+    const shift = mean(wanted) - mean(placed);
+    for (const [i, { labelId, gap }] of group.entries()) {
+      x[labelId] = placed[i] + shift;
+      y[labelId] = gapCenterY[gap];
+    }
+  }
+
+  // A label with no ranked endpoint to follow stays on the other endpoint, or at the origin.
+  for (const { labelId, near } of unrankedLabels) {
+    x[labelId] = x[near] ?? 0;
+    y[labelId] = y[near] ?? 0;
+  }
+
+  // Align dummy chains for each original edge: set dummy x to midpoint between src and dst.
+  const byRef = new Map<string, EdgeRef[]>();
+  for (const e of gWithDummies.edges) {
+    const rid = e.ref.id;
+    if (!byRef.has(rid)) {
+      byRef.set(rid, []);
+    }
+    byRef.get(rid)!.push(e);
+  }
+  for (const [, chainEdges] of byRef) {
+    if (chainEdges.length === 0) {
+      continue;
+    }
+    const ref = chainEdges[0].ref;
+    const src = ref.start!;
+    const dst = ref.end!;
+    if (src == null || dst == null) {
+      continue;
+    }
+    const midX = Math.round(((x[src] ?? 0) + (x[dst] ?? 0)) / 2);
+    const involved = new Set<NodeId>();
+    for (const e of chainEdges) {
+      involved.add(e.src);
+      involved.add(e.dst);
+    }
+    for (const vid of involved) {
+      if (vid === src || vid === dst) {
+        continue;
+      }
+      const node = gWithDummies.nodeById.get(vid) as any;
+      if (node?.isDummy) {
+        x[vid] = midX;
+      }
+    }
+  }
+
+  return { x, y };
+}

@@ -54,6 +54,8 @@ importers:
         specifier: 13.0.0-alpha.1
         version: 13.0.0-alpha.1
 
+  packages/swimlane-engine: {}
+
 packages:
 
   '@cacheable/memory@2.2.0':

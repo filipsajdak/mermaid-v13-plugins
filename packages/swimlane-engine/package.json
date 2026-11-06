@@ -1,0 +1,25 @@
+{
+  "name": "@mermaid-v13-plugins/swimlane-engine",
+  "version": "0.0.0",
+  "private": true,
+  "description": "The swimlane layout engine of mermaid v12 (lanes, pools, phases, orthogonal routing), lifted out of mermaid to run without a DOM.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}
