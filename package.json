@@ -17,6 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "render": "node harness/render.mjs",
+    "sheet": "node harness/sheet.mjs",
+    "serve": "node harness/serve.mjs",
     "smoke": "node harness/smoke.mjs",
     "check": "pnpm typecheck && pnpm test && pnpm lint && pnpm format:check"
   },
