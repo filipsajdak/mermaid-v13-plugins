@@ -1,4 +1,5 @@
 import type { DiagramPlugin } from '@mermaid-js/core';
+import { resolveLimits } from '@mermaid-js/core/limits';
 import { detector } from './detector.ts';
 import { layoutC4 } from './layout/index.ts';
 import type { C4Layout } from './layout/index.ts';
@@ -17,7 +18,11 @@ export const c4: DiagramPlugin<C4Model, C4Layout> = {
   formats: ['svg'],
   layoutKind: 'graph',
   detector,
-  parse: (text, ctx) => parseC4(text, { preprocessed: ctx.preprocessed }),
+  parse: (text, ctx) =>
+    parseC4(text, {
+      preprocessed: ctx.preprocessed,
+      limits: ctx.limits ?? resolveLimits(ctx.config),
+    }),
   layout: layoutC4,
   render: renderC4,
 };

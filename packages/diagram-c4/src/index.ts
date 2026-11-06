@@ -5,13 +5,7 @@
 export { c4 } from './plugin.ts';
 export { detector } from './detector.ts';
 export { parseC4 } from './parser/index.ts';
-export type {
-  C4DiagramKind,
-  C4Document,
-  C4Model,
-  C4ParseOptions,
-  C4ParseResult,
-} from './parser/index.ts';
+export type * from './parser/index.ts';
 export { layoutC4 } from './layout/index.ts';
 export type { C4Layout } from './layout/index.ts';
 export { renderC4 } from './render/index.ts';

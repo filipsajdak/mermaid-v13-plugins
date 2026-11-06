@@ -61,8 +61,8 @@ describe('explicit registration of the c4 id', () => {
     await api.registerExternalDiagrams([c4], { replace: true });
     expect(api.detectType('C4Container\n')).toBe('c4');
     expect(api.supportsFormat('c4', 'svg')).toBe(true);
-    // Stage 0: the package parses only the keyword and says so.
-    await expect(api.render('d', 'C4Container\n')).rejects.toThrow(/not ported to Mermaid v13 yet/);
+    // A parse error comes back as a syntax error with its line and column, as in v12.
+    await expect(api.render('d', 'C4Container\n')).rejects.toMatchObject({ code: 'SYNTAX' });
   });
 
   it('does not look plugin aliases up: only the id and the first-party type are names', async () => {
