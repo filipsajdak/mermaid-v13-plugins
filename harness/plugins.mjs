@@ -1,0 +1,17 @@
+// @ts-check
+/**
+ * The plugins the harness registers, in order. `replace` is for ids the alpha already lists as
+ * first-party types without a package (`c4`, `swimlane`): they must take that type's slot.
+ *
+ * @typedef {{ readonly name: string, readonly load: () => Promise<import('mermaid').ExternalDiagram>,
+ *   readonly replace: boolean }} HarnessPlugin
+ */
+
+/** @type {readonly HarnessPlugin[]} */
+export const PLUGINS = [
+  {
+    name: '@mermaid-v13-plugins/diagram-c4',
+    load: async () => (await import('@mermaid-v13-plugins/diagram-c4')).c4,
+    replace: true,
+  },
+];
