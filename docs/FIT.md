@@ -10,7 +10,7 @@ Each row gives the v13 equivalent, a gap, or a `BLOCKER`, with the evidence behi
 `BLOCKER` means a plugin cannot do it at all through the public contract.
 `OPEN` means not assessed yet; the stage that will assess it is named.
 
-The v12 side is the converged build: `develop` plus our open pull requests (`~/dev/c4mermaid-all`, branch `local/all-features`).
+The v12 side is the converged build: `develop` plus our open pull requests (a local build, not published; the harness takes its renders as input).
 Bug checks use the released `mermaid@12.3.0` instead.
 
 ## Registration

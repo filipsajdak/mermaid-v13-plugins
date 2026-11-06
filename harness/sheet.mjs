@@ -4,7 +4,7 @@
  * Side-by-side sheets: our v13 render next to the v12 reference render of the same diagram.
  *
  *   node harness/sheet.mjs --v12 <dir> [--v13 harness/out] [--out harness/out/sheets]
- *                          [--v12-label "v12 converged (c4mermaid-all <sha>)"]
+ *                          [--v12-label "v12 converged (<build>)"]
  *
  * `--v13` is a `render.mjs` output directory (its `report.json` names the diagrams). `--v12`
  * holds `<name>.svg` or `<name>.png` for each, rendered by the v12 build. Both SVGs are
