@@ -15,7 +15,7 @@ import { undeclaredAliases } from './lib/svg-checks.mjs';
 
 /**
  * Each fixture and the labels its SVG must contain, as XML-escaped text: the placeholder
- * plugin's, and one real C4 diagram.
+ * plugin's, one real C4 diagram, and a swimlane diagram with phases.
  */
 const CASES = [
   {
@@ -32,6 +32,20 @@ const CASES = [
     ),
     labels: ['Banking Customer A', 'Internet Banking System', 'E-mail system', 'BankBoundary0'],
     absent: [],
+  },
+  {
+    file: fileURLToPath(new URL('./fixtures/smoke/swimlane-phases.mmd', import.meta.url)),
+    labels: [
+      'Underwriting',
+      'Servicing',
+      'Intake',
+      'Review &amp; sign',
+      'Receive request',
+      'Outside every lane',
+      'Approved',
+      'aria-roledescription="swimlane"',
+    ],
+    absent: ['phase intake'],
   },
 ];
 

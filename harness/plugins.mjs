@@ -14,4 +14,9 @@ export const PLUGINS = [
     load: async () => (await import('@mermaid-v13-plugins/diagram-c4')).c4,
     replace: true,
   },
+  {
+    name: '@mermaid-v13-plugins/diagram-swimlane',
+    load: async () => (await import('@mermaid-v13-plugins/diagram-swimlane')).swimlane,
+    replace: true,
+  },
 ];
