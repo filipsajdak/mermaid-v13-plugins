@@ -18,10 +18,33 @@ export { DEFAULT_SWIMLANE_ID } from './helpers.js';
 export { buildLaneModel, type LaneModel } from './lanes.js';
 export { collectWarnings } from './logger.js';
 
+export interface SwimlaneLayoutOptions {
+  /**
+   * The measured size of an edge's label, by edge id. v12 measured the `edge-label-*` nodes in
+   * the DOM before the layout ran; without this they are laid out as points.
+   */
+  readonly labelSize?: (edgeId: string) => { width: number; height: number } | undefined;
+}
+
 export interface SwimlaneLayoutResult {
   readonly direction: SwimlaneDirection;
   /** What v12 logged at `warn` while laying the diagram out, in order. */
   readonly warnings: readonly string[];
+}
+
+function sizeEdgeLabels(data: LayoutData, { labelSize }: SwimlaneLayoutOptions): void {
+  if (!labelSize) {
+    return;
+  }
+  const byId = new Map(data.nodes.map((node) => [node.id, node]));
+  for (const edge of data.edges) {
+    const node = edge.labelNodeId === undefined ? undefined : byId.get(edge.labelNodeId);
+    const size = labelSize(edge.id);
+    if (node && size) {
+      node.width = size.width;
+      node.height = size.height;
+    }
+  }
 }
 
 /**
@@ -32,12 +55,16 @@ export interface SwimlaneLayoutResult {
  * author's own `swimlane.ignoreCrossLaneEdges`, which the merged config cannot tell from the
  * default; v12 read it from `getUserDefinedConfig()`.
  */
-export function layoutSwimlanes(data: LayoutData): SwimlaneLayoutResult {
+export function layoutSwimlanes(
+  data: LayoutData,
+  options: SwimlaneLayoutOptions = {}
+): SwimlaneLayoutResult {
   const { result, warnings } = collectWarnings(() => {
     prepareLayoutForSwimlanes(data);
     const labelled = createEdgeLabelNodes(data);
     data.nodes = labelled.nodes;
     data.edges = labelled.edges;
+    sizeEdgeLabels(data, options);
     return runSwimlaneLayoutCore(data);
   });
   return { direction: result, warnings };

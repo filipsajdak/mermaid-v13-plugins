@@ -1,7 +1,8 @@
 /**
  * The layout data the engine reads and writes: v12's `rendering-util/types.ts`, cut down to the
  * fields the engine and its specs touch, with mermaid's own types (config, shape ids, d3) left
- * out. The engine mutates this data in place, as it did in v12.
+ * out. The engine mutates this data in place, as it did in v12. Optional fields also take
+ * `undefined`, so callers built with `exactOptionalPropertyTypes` can pass what they have.
  */
 
 export interface Point {
@@ -19,16 +20,20 @@ export type ShapeID = string;
 
 /** The config keys the engine reads; v12 passed the whole merged `MermaidConfig`. */
 export interface SwimlaneLayoutConfig {
-  look?: string;
-  fontSize?: number;
-  nodeSpacing?: number;
-  rankSpacing?: number;
-  flowchart?: { nodeSpacing?: number; rankSpacing?: number; [key: string]: unknown };
+  look?: string | undefined;
+  fontSize?: number | undefined;
+  nodeSpacing?: number | undefined;
+  rankSpacing?: number | undefined;
+  flowchart?: {
+    nodeSpacing?: number | undefined;
+    rankSpacing?: number | undefined;
+    [key: string]: unknown;
+  };
   swimlane?: {
-    ignoreCrossLaneEdges?: boolean;
-    optimizeRanksByCrossings?: boolean;
-    automaticLaneOrdering?: boolean;
-    lineHops?: boolean | 'arc' | 'gap';
+    ignoreCrossLaneEdges?: boolean | undefined;
+    optimizeRanksByCrossings?: boolean | undefined;
+    automaticLaneOrdering?: boolean | undefined;
+    lineHops?: boolean | 'arc' | 'gap' | undefined;
     [key: string]: unknown;
   };
   [key: string]: unknown;
@@ -43,98 +48,98 @@ export interface GroupTitleRect {
 
 interface BaseNode {
   id: string;
-  label?: string;
-  description?: string[];
-  parentId?: string;
-  cssStyles?: string[];
-  cssClasses?: string;
-  labelStyle?: string;
-  labelType?: string;
-  domId?: string;
-  dir?: string;
-  padding?: number;
-  isGroup?: boolean;
-  width?: number;
-  height?: number;
-  labelBBox?: { width: number; height: number };
-  groupTitleRect?: GroupTitleRect;
-  intersect?: (point: any) => any;
-  rx?: number;
-  ry?: number;
-  x?: number;
-  y?: number;
-  look?: string;
-  icon?: string;
-  img?: string;
-  metadata?: Record<string, unknown>;
-  layer?: number;
-  order?: number;
-  colorIndex?: number;
+  label?: string | undefined;
+  description?: string[] | undefined;
+  parentId?: string | undefined;
+  cssStyles?: string[] | undefined;
+  cssClasses?: string | undefined;
+  labelStyle?: string | undefined;
+  labelType?: string | undefined;
+  domId?: string | undefined;
+  dir?: string | undefined;
+  padding?: number | undefined;
+  isGroup?: boolean | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  labelBBox?: { width: number | undefined; height: number };
+  groupTitleRect?: GroupTitleRect | undefined;
+  intersect?: ((point: any) => any) | undefined;
+  rx?: number | undefined;
+  ry?: number | undefined;
+  x?: number | undefined;
+  y?: number | undefined;
+  look?: string | undefined;
+  icon?: string | undefined;
+  img?: string | undefined;
+  metadata?: Record<string, unknown> | undefined;
+  layer?: number | undefined;
+  order?: number | undefined;
+  colorIndex?: number | undefined;
 }
 
 export interface ClusterNode extends BaseNode {
-  shape?: ShapeID;
+  shape?: ShapeID | undefined;
   isGroup: true;
-  isEdgeLabel?: boolean;
-  edgeStart?: string;
-  edgeEnd?: string;
-  isDummy?: boolean;
+  isEdgeLabel?: boolean | undefined;
+  edgeStart?: string | undefined;
+  edgeEnd?: string | undefined;
+  isDummy?: boolean | undefined;
 }
 
 export interface NonClusterNode extends BaseNode {
-  shape?: ShapeID;
+  shape?: ShapeID | undefined;
   isGroup: false;
-  isEdgeLabel?: boolean;
-  edgeStart?: string;
-  edgeEnd?: string;
-  isDummy?: boolean;
+  isEdgeLabel?: boolean | undefined;
+  edgeStart?: string | undefined;
+  edgeEnd?: string | undefined;
+  isDummy?: boolean | undefined;
 }
 
 export type Node = ClusterNode | NonClusterNode;
 
 export interface Edge {
   id: string;
-  label?: string;
-  classes?: string;
-  style?: string[];
-  metadata?: Record<string, unknown>;
-  arrowhead?: string;
-  arrowTypeEnd?: string;
-  arrowTypeStart?: string;
-  end?: string;
-  interpolate?: string;
-  labelType?: string;
-  length?: number;
-  start?: string;
-  stroke?: string;
-  text?: string;
-  type?: string;
-  curve?: string;
-  labelStyle?: string[];
-  minlen?: number;
-  thickness?: 'normal' | 'thick' | 'invisible' | 'dotted';
-  look?: string;
-  width?: number;
-  height?: number;
-  x?: number;
-  y?: number;
-  points?: Point[];
-  parentId?: string;
-  dir?: string;
-  source?: string;
-  target?: string;
+  label?: string | undefined;
+  classes?: string | undefined;
+  style?: string[] | undefined;
+  metadata?: Record<string, unknown> | undefined;
+  arrowhead?: string | undefined;
+  arrowTypeEnd?: string | undefined;
+  arrowTypeStart?: string | undefined;
+  end?: string | undefined;
+  interpolate?: string | undefined;
+  labelType?: string | undefined;
+  length?: number | undefined;
+  start?: string | undefined;
+  stroke?: string | undefined;
+  text?: string | undefined;
+  type?: string | undefined;
+  curve?: string | undefined;
+  labelStyle?: string[] | undefined;
+  minlen?: number | undefined;
+  thickness?: 'normal' | 'thick' | 'invisible' | 'dotted' | undefined;
+  look?: string | undefined;
+  width?: number | undefined;
+  height?: number | undefined;
+  x?: number | undefined;
+  y?: number | undefined;
+  points?: Point[] | undefined;
+  parentId?: string | undefined;
+  dir?: string | undefined;
+  source?: string | undefined;
+  target?: string | undefined;
   /** The router threads the edge through the centre of this edge-label node. */
-  labelNodeId?: string;
+  labelNodeId?: string | undefined;
   /** Feeds layering and ordering only; never routed or drawn. */
-  isLayoutOnly?: boolean;
+  isLayoutOnly?: boolean | undefined;
 }
 
 export interface LayoutData {
   nodes: Node[];
   edges: Edge[];
   config: SwimlaneLayoutConfig;
-  diagramId?: string;
+  diagramId?: string | undefined;
   /** `branches` asks the layout to layer each branch of the flow on its own. */
-  laneLayering?: 'branches';
+  laneLayering?: 'branches' | undefined;
   [key: string]: any;
 }
