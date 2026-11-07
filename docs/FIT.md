@@ -6,6 +6,7 @@ Three things do not fit.
 It can only be registered explicitly, with `registerExternalDiagrams([c4], { replace: true })`, because discovery skips it.
 The two `c4` config keys the converged build adds cannot be declared in the `c4` section; an extension can carry them in a section of its own, through config aliases.
 And a boundary's own direction is dropped when a relationship crosses into it.
+`c4-beta` fits as well: all 27 sources render and match the converged build's renders element for element (see [Fit table: c4-beta](#fit-table-c4-beta)).
 Everything below is measured against `mermaid@13.0.0-alpha.1` and `@mermaid-js/core@13.0.0-alpha.1`, pinned exactly.
 
 Each row gives the v13 equivalent, a gap, or a `BLOCKER`, with the evidence behind it.
@@ -172,3 +173,63 @@ These are the differences:
 | Stereotypes stay visible                                                                                                 | `e2e-nightly-update-element-style-show-stereotypes-config-off`                                                 | note 7                                                                                                                                                                                            |
 | `UpdateRelStyle` text colours and `$offsetX`/`$offsetY` show; offsets written for v12's grid can move a label onto a box | `docs-5`, `docs-6`, `e2e-nightly-c4-4-...`, `e2e-pr-c4-3-...`, `e2e-nightly-styling-update-relationship-style` | the converged build's renders show these labels uncoloured and on their line                                                                                                                      |
 | Title in the theme font, labels slightly larger                                                                          | all                                                                                                            | v13's default theme font and size differ from v12's                                                                                                                                               |
+
+## Fit table: c4-beta
+
+| v12 dependency                                          | v13 equivalent                                                                                       | status | evidence                                                                               |
+| ------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- | ------ | -------------------------------------------------------------------------------------- |
+| Registration and detection                              | `registerExternalDiagrams([c4Beta, c4BetaCompat])` under its own id, no `replace`                    | FITS   | no first-party row claims `c4-beta`; `test/c4-beta-render.test.ts`                     |
+| Lazy registration (a `loader`, the `mermaid` manifest)  | the registry loads the plugin's `diagram` member, else its `layout` member                           | GAP    | note 8                                                                                 |
+| Parser (`c4.langium` in `@mermaid-js/parser`)           | a hand-written scanner and recursive descent on parser-kit; no Langium                               | FITS   | note 9                                                                                 |
+| db and validation (`c4-beta/db.ts`)                     | checks in the parse, as warnings: an unexpected kind, technology or instances where v12 ignores them | FITS   | the ported specs, note 9                                                               |
+| Code shared with legacy C4                              | the workspace package `@mermaid-v13-plugins/c4-shared`                                               | FITS   | note 10                                                                                |
+| Layout: boundaries, nested deployment nodes             | `LayoutGroup` with a stacked title                                                                   | FITS   | `docs-08`: four nested nodes; every fixture keeps its elements inside their boundaries |
+| Layout: `direction`                                     | the graph's direction                                                                                | FITS   | `docs-14` lays out left to right                                                       |
+| Dynamic step numbers                                    | numbered labels made by the plugin                                                                   | FITS   | `docs-07`: steps 1, 2, 2, 3, 4                                                         |
+| Tag styles (`fill`, `stroke`, `color`, `shape`, `line`) | colours through `checkColor`, dash patterns through `checkStyle`                                     | FITS   | `docs-12`: a dark fill, a cylinder, a dotted line                                      |
+| Legend                                                  | drawn by the plugin under the drawing                                                                | FITS   | one row per kind, externals apart, then one per tag style; `legend off` draws none     |
+| Theme variables `c4PersonBkg` and the rest              | an extension's config fragment declares them                                                         | GAP    | note 11                                                                                |
+| Config: v12's `c4beta` section                          | the plugin's `c4-beta` section; `c4BetaCompat` aliases `c4beta` to it                                | GAP    | note 11                                                                                |
+| HTML labels                                             | `layoutLabel`; the plugin escapes user text, because core's label layout reads `<b>` and entities    | FITS   | `<b>A & B</b>` is drawn as written                                                     |
+| Accessibility                                           | `<title>` and `<desc>` with `aria-labelledby` and `aria-describedby`                                 | FITS   | `accTitle`, `accDescr`                                                                 |
+
+### Notes
+
+8. **A plugin with a `layout` member loads that member on the lazy paths.**
+   The registry unwraps whatever a `loader` returns (`registry.js`, `unwrap`): it takes `diagram`, else `layout`, else `default`.
+   A manifest's `export` goes through the same step.
+   Every diagram plugin has a `layout` method, so it loads that function as the plugin, and the render fails with `plugin.parse is not a function`.
+   `c4Beta` names itself as `diagram`, which fixes a loader that returns the plugin, a loader that returns the package's namespace, and the manifest.
+   Each path has a test that fails without it.
+   Legacy `c4` has the same `layout` member; it is registered eagerly, which is not affected.
+9. **Parser.**
+   The converged build parses c4-beta with Langium; the alpha has no Langium, and a plugin may depend only on core.
+   The port is a scanner and a recursive descent on parser-kit, as legacy C4's is, but the two grammars share no code.
+   It unescapes strings as Langium does, keeps going after an error, and reports the limits as core's limit codes.
+   The converged build's parser, db and detector specs are ported: 68 tests, 51 on the parse and 17 on the rendered SVG.
+   With the parser stubbed to an empty model, 49 of them fail; the 19 that pass check the header defaults, the detector, or that no warning is given.
+10. **Shared code.**
+    `@mermaid-v13-plugins/c4-shared` (800 lines) holds what both plugins draw with: the stacked label blocks, the shapes, the scene layout over core's layered engine, the edge and boundary drawing, and the colour helpers.
+    Legacy C4 keeps 450 lines of its own layout and rendering, c4-beta 600; the parsers are 1,370 and 910 lines.
+    Moving the code out left all 57 legacy renders byte-identical except for one wrapper group.
+11. **What a diagram plugin cannot declare goes in an extension.**
+    `c4BetaCompat` is an extension to register next to the plugin.
+    Its config fragment declares the 13 C4 theme variables, so a page can set `--mermaid-c4PersonBkg`; without it, `theme.color('c4PersonBkg')` throws `TypeError: Unknown theme variable "c4PersonBkg"`, and the plugin draws the converged build's colours as literals.
+    The same fragment aliases v12's `c4beta` section to the plugin's `c4-beta` section.
+    Without it, `c4beta: { hideStereotypes: [person] }` in front matter gives `CONFIG_UNKNOWN_KEY` and the stereotype stays.
+
+## Parity with the converged build: c4-beta
+
+The 27 sources are the c4-beta documentation, the examples, the e2e spec and the proof page of the converged build.
+All 27 render, and each sheet was opened next to the converged build's render.
+Every element, label, relationship, boundary and legend row is drawn in both, and the placement matches: the same ranks, the same sides.
+`test/c4-beta-render.test.ts` checks that no element overlaps another or leaves its boundary.
+These are the differences:
+
+| difference                                                    | fixtures                                   | cause                                                                                                                     |
+| ------------------------------------------------------------- | ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Lines are wider and wrap less                                 | all                                        | v13's default font size is 14px, the converged build's 16px                                                               |
+| Relationship labels sit on a darker grey                      | all with labels                            | core's `edgeLabelBackground` defaults to `secondaryColor`                                                                 |
+| Arrowheads are larger                                         | all                                        | core's arrowhead size                                                                                                     |
+| A deployment node's technology line is centred under its name | `docs-08` to `docs-11`, `spec-5`, `spec-7` | the converged build left-aligns it                                                                                        |
+| An edge into a nested boundary crosses the boundary's title   | `docs-08`, `spec-5`                        | both builds route into a child centred under the title; the converged build does it in `docs-03`, `docs-09` and `docs-11` |
