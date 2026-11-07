@@ -10,6 +10,6 @@
     "checkJs": true,
     "types": ["node"]
   },
-  "include": ["test", "harness", "vitest.config.ts", "eslint.config.js"],
+  "include": ["test", "harness", "packages/*/scripts", "vitest.config.ts", "eslint.config.js"],
   "exclude": ["harness/out"]
 }

@@ -47,7 +47,51 @@ export default defineConfig(
     },
   },
   {
-    files: ['harness/**/*.mjs', 'test/**/*.ts', 'packages/*/test/**/*.ts', 'eslint.config.js'],
+    // swimlane-beta is the flowchart syntax laid out in lanes: the plugin reuses the first-party
+    // flowchart plugin's parser and renderer, and lays out with our lifted swimlane engine.
+    files: ['packages/diagram-swimlane/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex:
+                '^(?!@mermaid-js/core(/|$)|@mermaid-js/diagram-flowchart$|@mermaid-v13-plugins/swimlane-engine$|\\.{1,2}/)',
+              message:
+                'The swimlane plugin imports only @mermaid-js/core, the flowchart plugin, the swimlane engine and its own files.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // bpmn-beta is laid out in pools and lanes by our lifted swimlane engine, as in v12.
+    files: ['packages/diagram-bpmn/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^(?!@mermaid-js/core(/|$)|@mermaid-v13-plugins/swimlane-engine$|\\.{1,2}/)',
+              message:
+                'The BPMN plugin imports only @mermaid-js/core, the swimlane engine and its own files.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    files: [
+      'harness/**/*.mjs',
+      'packages/*/scripts/**/*.mjs',
+      'test/**/*.ts',
+      'packages/*/test/**/*.ts',
+      'eslint.config.js',
+    ],
     languageOptions: {
       globals: { ...globals.node },
     },
@@ -59,5 +103,53 @@ export default defineConfig(
       '@typescript-eslint/consistent-type-assertions': 'off',
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
+  },
+  {
+    // The swimlane engine is lifted from mermaid v12 and kept close to it, so a diff against v12
+    // stays readable. v12 linted it without the type-checked strict rules; the DOM ban and the
+    // import rule below still hold. The files written for v13 are not lifted, and keep every rule.
+    files: ['packages/swimlane-engine/src/**/*.ts'],
+    ignores: [
+      'packages/swimlane-engine/src/index.ts',
+      'packages/swimlane-engine/src/logger.ts',
+      'packages/swimlane-engine/src/types.ts',
+    ],
+    rules: {
+      '@typescript-eslint/consistent-type-assertions': 'off',
+      '@typescript-eslint/no-explicit-any': 'off',
+      '@typescript-eslint/no-non-null-assertion': 'off',
+      '@typescript-eslint/no-unsafe-member-access': 'off',
+      '@typescript-eslint/no-unsafe-assignment': 'off',
+      '@typescript-eslint/no-unsafe-argument': 'off',
+      '@typescript-eslint/no-unsafe-call': 'off',
+      '@typescript-eslint/no-unsafe-return': 'off',
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      '@typescript-eslint/no-unnecessary-condition': 'off',
+      '@typescript-eslint/no-unnecessary-type-conversion': 'off',
+      '@typescript-eslint/no-unnecessary-boolean-literal-compare': 'off',
+      '@typescript-eslint/no-confusing-void-expression': 'off',
+      '@typescript-eslint/restrict-plus-operands': 'off',
+      '@typescript-eslint/no-deprecated': 'off',
+      '@typescript-eslint/no-unused-vars': 'off',
+      'no-useless-assignment': 'off',
+      // The engine imports nothing but its own files.
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            { regex: '^(?!\\.{1,2}/)', message: 'The swimlane engine imports only its own files.' },
+          ],
+        },
+      ],
+    },
+  },
+  {
+    // Its v12 specs also use vitest and node.
+    files: [
+      'packages/swimlane-engine/src/**/*.spec.ts',
+      'packages/swimlane-engine/src/**/__tests__/**/*.ts',
+    ],
+    languageOptions: { globals: { ...globals.node } },
+    rules: { 'no-restricted-imports': 'off', 'no-restricted-globals': 'off' },
   },
 );

@@ -1,0 +1,7 @@
+bpmn-beta LR
+  lane "Order handling"
+    start message s1 "Order received"
+    user task t1 "Check stock"
+    xor gw "In stock?"
+    end e1 "Order shipped"
+  s1 --> t1 --> gw --> e1

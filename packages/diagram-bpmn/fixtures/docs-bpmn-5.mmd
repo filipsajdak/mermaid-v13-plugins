@@ -1,0 +1,8 @@
+bpmn-beta LR
+  lane "Review"
+    start s1 "Submitted"
+    xor gw1 "Approved?"
+    and gw2 "Fan out"
+    end e1 "Done"
+  s1 --> gw1
+  gw1 -- yes --> gw2 --> e1

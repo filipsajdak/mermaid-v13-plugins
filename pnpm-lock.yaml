@@ -17,12 +17,18 @@ importers:
       '@mermaid-js/layout-elk':
         specifier: 13.0.0-alpha.1
         version: 13.0.0-alpha.1(@mermaid-js/core@13.0.0-alpha.1)
+      '@mermaid-v13-plugins/diagram-bpmn':
+        specifier: workspace:*
+        version: link:packages/diagram-bpmn
       '@mermaid-v13-plugins/diagram-c4':
         specifier: workspace:*
         version: link:packages/diagram-c4
       '@mermaid-v13-plugins/diagram-c4-beta':
         specifier: workspace:*
         version: link:packages/diagram-c4-beta
+      '@mermaid-v13-plugins/diagram-swimlane':
+        specifier: workspace:*
+        version: link:packages/diagram-swimlane
       '@types/node':
         specifier: 22.20.5
         version: 22.20.5
@@ -60,6 +66,19 @@ importers:
         specifier: 13.0.0-alpha.1
         version: 13.0.0-alpha.1
 
+  packages/diagram-bpmn:
+    dependencies:
+      '@mermaid-v13-plugins/swimlane-engine':
+        specifier: workspace:*
+        version: link:../swimlane-engine
+    devDependencies:
+      '@mermaid-js/core':
+        specifier: 13.0.0-alpha.1
+        version: 13.0.0-alpha.1
+      mermaid:
+        specifier: 13.0.0-alpha.1
+        version: 13.0.0-alpha.1
+
   packages/diagram-c4:
     dependencies:
       '@mermaid-v13-plugins/c4-shared':
@@ -79,6 +98,24 @@ importers:
       '@mermaid-js/core':
         specifier: 13.0.0-alpha.1
         version: 13.0.0-alpha.1
+
+  packages/diagram-swimlane:
+    dependencies:
+      '@mermaid-v13-plugins/swimlane-engine':
+        specifier: workspace:*
+        version: link:../swimlane-engine
+    devDependencies:
+      '@mermaid-js/core':
+        specifier: 13.0.0-alpha.1
+        version: 13.0.0-alpha.1
+      '@mermaid-js/diagram-flowchart':
+        specifier: 13.0.0-alpha.1
+        version: 13.0.0-alpha.1(@mermaid-js/core@13.0.0-alpha.1)
+      mermaid:
+        specifier: 13.0.0-alpha.1
+        version: 13.0.0-alpha.1
+
+  packages/swimlane-engine: {}
 
 packages:
 

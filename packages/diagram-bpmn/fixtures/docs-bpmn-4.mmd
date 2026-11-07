@@ -1,0 +1,7 @@
+bpmn-beta LR
+  lane "Escalation"
+    start timer s1 "Every night"
+    intermediate message i1 "Await reply"
+    throw escalation x1 "Escalate"
+    end terminate e1 "Stop"
+  s1 --> i1 --> x1 --> e1

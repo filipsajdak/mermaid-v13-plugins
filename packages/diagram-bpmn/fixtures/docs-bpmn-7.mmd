@@ -1,0 +1,9 @@
+bpmn-beta LR
+  lane "Support"
+    start s1 "Ticket raised"
+    task t1 "Await customer"
+      boundary timer b1 "3 days"
+    end e1 "Resolved"
+    end e2 "Timed out"
+  s1 --> t1 --> e1
+  b1 --> e2

@@ -1,0 +1,9 @@
+bpmn-beta LR
+  pool "Order handling"
+    lane "Sales"
+      start s1 "Order received"
+      task t1 "Approve order"
+    lane "Warehouse"
+      task t2 "Pick items"
+      end e1 "Shipped"
+  s1 --> t1 --> t2 --> e1

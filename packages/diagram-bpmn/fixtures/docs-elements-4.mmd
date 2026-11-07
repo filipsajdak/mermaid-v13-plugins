@@ -1,0 +1,7 @@
+bpmn-beta LR
+  lane "Review"
+    xor gw "Approved?"
+    user task ship "Ship it"
+    user task refund "Refund it"
+  gw -- yes --> ship
+  gw -- no --> refund

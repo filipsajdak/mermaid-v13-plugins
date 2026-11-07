@@ -1,0 +1,51 @@
+{
+  "name": "@mermaid-v13-plugins/diagram-swimlane",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Unofficial Mermaid v13 plugin for swimlane-beta: the flowchart syntax laid out in lanes and phases.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    },
+    "./detector": {
+      "types": "./dist/detector.d.ts",
+      "default": "./dist/detector.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@mermaid-v13-plugins/swimlane-engine": "workspace:*"
+  },
+  "peerDependencies": {
+    "@mermaid-js/core": "13.0.0-alpha.1",
+    "@mermaid-js/diagram-flowchart": "13.0.0-alpha.1"
+  },
+  "devDependencies": {
+    "@mermaid-js/core": "13.0.0-alpha.1",
+    "@mermaid-js/diagram-flowchart": "13.0.0-alpha.1",
+    "mermaid": "13.0.0-alpha.1"
+  },
+  "mermaid": {
+    "plugin": "diagram",
+    "id": "swimlane",
+    "formats": [
+      "svg"
+    ],
+    "detector": "./dist/detector.js",
+    "entry": "./dist/index.js",
+    "export": "swimlane"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

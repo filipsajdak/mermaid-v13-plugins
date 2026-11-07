@@ -1,5 +1,11 @@
 {
   "singleQuote": true,
   "printWidth": 100,
-  "trailingComma": "all"
+  "trailingComma": "all",
+  "overrides": [
+    {
+      "files": "packages/swimlane-engine/src/**",
+      "options": { "trailingComma": "es5" }
+    }
+  ]
 }

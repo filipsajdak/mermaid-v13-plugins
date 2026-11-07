@@ -15,7 +15,8 @@ import { undeclaredAliases } from './lib/svg-checks.mjs';
 
 /**
  * Each fixture and the labels its SVG must contain, as XML-escaped text: the placeholder
- * plugin's, one legacy C4 diagram and one c4-beta deployment diagram.
+ * plugin's, one legacy C4 diagram, one c4-beta deployment diagram, a swimlane diagram with
+ * phases, and a BPMN collaboration.
  */
 const CASES = [
   {
@@ -38,6 +39,27 @@ const CASES = [
       new URL('../packages/diagram-c4-beta/fixtures/docs-11.mmd', import.meta.url),
     ),
     labels: ['Big Bank plc data center', 'Load Balancer', 'API Application', 'x0..1'],
+    absent: [],
+  },
+  {
+    file: fileURLToPath(new URL('./fixtures/smoke/swimlane-phases.mmd', import.meta.url)),
+    labels: [
+      'Underwriting',
+      'Servicing',
+      'Intake',
+      'Review &amp; sign',
+      'Receive request',
+      'Outside every lane',
+      'Approved',
+      'aria-roledescription="swimlane"',
+    ],
+    absent: ['phase intake'],
+  },
+  {
+    file: fileURLToPath(
+      new URL('../packages/diagram-bpmn/fixtures/docs-bpmn-8.mmd', import.meta.url),
+    ),
+    labels: ['Customer', 'Supplier', 'Needs goods', 'Place order', 'Receive order', 'Fulfilled'],
     absent: [],
   },
 ];

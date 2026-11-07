@@ -1,0 +1,7 @@
+bpmn-beta LR
+  lane "Orders"
+    user task t1 "Await approval"
+      boundary timer b1 "2 days"
+    end e1 "Filed"
+  t1 --> e1
+  b1 --> e1

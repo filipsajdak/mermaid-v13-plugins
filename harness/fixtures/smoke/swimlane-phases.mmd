@@ -1,0 +1,20 @@
+---
+title: Swimlane smoke
+---
+swimlane-beta LR
+  accTitle: Underwriting
+  accDescr: A request moves through intake, review and closeout.
+  phase intake["Intake"]
+  phase review["Review & sign"]
+
+  subgraph underwriting [Underwriting]
+    receive["Receive request"]@{ phase: intake }
+    assess{"Assess?"}@{ phase: review }
+  end
+
+  subgraph servicing [Servicing]
+    log["Log request"]@{ phase: intake }
+  end
+
+  loose[Outside every lane]
+  log --> receive --> assess -->|Approved| loose
