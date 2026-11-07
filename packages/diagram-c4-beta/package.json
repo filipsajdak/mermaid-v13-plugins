@@ -26,11 +26,25 @@
   "engines": {
     "node": ">=20"
   },
+  "dependencies": {
+    "@mermaid-v13-plugins/c4-shared": "workspace:*"
+  },
   "peerDependencies": {
     "@mermaid-js/core": "13.0.0-alpha.1"
   },
   "devDependencies": {
     "@mermaid-js/core": "13.0.0-alpha.1"
+  },
+  "mermaid": {
+    "plugin": "diagram",
+    "id": "c4-beta",
+    "formats": [
+      "svg"
+    ],
+    "detector": "./dist/detector.js",
+    "entry": "./dist/index.js",
+    "export": "c4Beta",
+    "language": "./dist/language.js"
   },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",

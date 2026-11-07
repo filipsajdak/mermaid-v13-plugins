@@ -68,6 +68,10 @@ importers:
         version: 13.0.0-alpha.1
 
   packages/diagram-c4-beta:
+    dependencies:
+      '@mermaid-v13-plugins/c4-shared':
+        specifier: workspace:*
+        version: link:../c4-shared
     devDependencies:
       '@mermaid-js/core':
         specifier: 13.0.0-alpha.1
