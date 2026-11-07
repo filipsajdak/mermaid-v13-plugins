@@ -1,0 +1,17 @@
+swimlane-beta LR
+  phase intake["Intake"]
+  phase review["Review"]
+  phase closeout["Closeout"]
+
+  subgraph underwriting [Underwriting]
+    receive["Receive request"]@{ phase: intake }
+    assess["Assess"]@{ phase: review }
+    sign["Sign off"]@{ phase: closeout }
+  end
+
+  subgraph servicing [Servicing]
+    log["Log request"]@{ phase: intake }
+    close["Close file"]@{ phase: closeout }
+  end
+
+  log --> receive --> assess --> sign --> close

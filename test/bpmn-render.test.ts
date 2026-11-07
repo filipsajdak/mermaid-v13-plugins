@@ -2,7 +2,7 @@
  * Every bpmn-beta fixture rendered through mermaid 13.0.0-alpha.1 in Node, with no DOM (v12's
  * `bpmn.docs.spec.ts` rendered the documentation examples the same way, in jsdom): it renders,
  * its SVG passes core's allow-list, every theme alias it uses is declared, every label is in
- * it, no two elements overlap, and every element sits inside the pool or lane that holds it.
+ * it, every flow is drawn, no two elements overlap, and every element sits inside the pool or lane that holds it.
  * The layout is read through an extension's `postLayout` hook.
  */
 import { readdirSync, readFileSync } from 'node:fs';
@@ -28,6 +28,9 @@ const capture: ExtensionPlugin = {
     return laidOut;
   },
 };
+
+/** Read through a call, so TypeScript does not narrow it to what the test last assigned. */
+const laidOut = (): BpmnLayout | undefined => captured;
 
 let api: ReturnType<typeof createMermaid>;
 beforeAll(async () => {
@@ -82,6 +85,11 @@ describe.each(files)('%s', (file) => {
       }
     }
     expect(captured).toBeDefined();
+    // Every flow is routed and drawn: one edge group with a line per flow.
+    expect(laidOut()?.flows.length).toBe(model.flows.length);
+    expect([...r.svg.matchAll(/<g class="edge bpmn-flow[^"]*"><path /g)].length).toBe(
+      model.flows.length,
+    );
   });
 
   it('lays no element over another and keeps each in its pool or lane', () => {
