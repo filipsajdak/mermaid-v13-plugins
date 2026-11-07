@@ -3,12 +3,13 @@
 /**
  * Renders `.mmd` files through mermaid v13 and our plugins in Node, with no DOM.
  *
- *   node harness/render.mjs [--png] [--out <dir>] [--plugin <module>]... <file.mmd | dir>...
+ *   node harness/render.mjs [--png] [--out <dir>] [--layout <name>] [--plugin <module>]... <file.mmd | dir>...
  *
  * Writes `<out>/<name>.svg` for each diagram that renders, `<out>/<name>.error.txt` for each
  * that does not, and `<out>/report.json` with every outcome and its warnings. `--png` also
  * rasterises each SVG through headless system Chrome. `--plugin` registers the plugins a module
- * exports (any export with an `id` and a `detector`), after ours. Exits 1 when a diagram fails.
+ * exports (any export with an `id` and a `detector`), after ours. `--layout` sets the `layout`
+ * config (`elk` registers `@mermaid-js/layout-elk`). Exits 1 when a diagram fails.
  */
 import { readdir, readFile, stat, mkdir, writeFile, rm } from 'node:fs/promises';
 import { basename, join, resolve } from 'node:path';
@@ -77,18 +78,21 @@ async function main() {
       png: { type: 'boolean', default: false },
       out: { type: 'string' },
       plugin: { type: 'string', multiple: true, default: [] },
+      layout: { type: 'string' },
     },
   });
   if (positionals.length === 0) {
     process.stderr.write(
-      'usage: render.mjs [--png] [--out dir] [--plugin module]... <file|dir>...\n',
+      'usage: render.mjs [--png] [--out dir] [--layout name] [--plugin module]... <file|dir>...\n',
     );
     process.exit(2);
   }
   const out = values.out ? resolve(values.out) : DEFAULT_OUT;
   await mkdir(out, { recursive: true });
   const extra = (await Promise.all(values.plugin.map(pluginsOf))).flat();
-  const renderer = await createRenderer({ extra });
+  const renderer = await createRenderer(
+    values.layout === undefined ? { extra } : { extra, layout: values.layout },
+  );
   const nameOf = namer();
   /** @type {Omit<import('./lib/mermaid.mjs').RenderOutcome, 'svg'>[]} */
   const outcomes = [];

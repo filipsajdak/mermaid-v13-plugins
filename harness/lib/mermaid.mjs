@@ -17,11 +17,15 @@ import { undeclaredAliases } from './svg-checks.mjs';
 /**
  * A mermaid API object with discovery off (the harness registers explicitly, so its renders do
  * not depend on what `node_modules` holds), our plugins, and `extra` plugins after them.
- * @param {{ extra?: readonly import('mermaid').ExternalDiagram[] }} [options]
+ * `layout` names the layout engine; an `elk` name registers `@mermaid-js/layout-elk` first.
+ * @param {{ extra?: readonly import('mermaid').ExternalDiagram[], layout?: string }} [options]
  */
-export async function createRenderer({ extra = [] } = {}) {
+export async function createRenderer({ extra = [], layout } = {}) {
   const mermaid = createMermaid();
-  mermaid.initialize({ discovery: false });
+  if (layout !== undefined && (layout === 'elk' || layout.startsWith('elk.'))) {
+    mermaid.registerLayoutLoaders((await import('@mermaid-js/layout-elk')).default);
+  }
+  mermaid.initialize(layout === undefined ? { discovery: false } : { discovery: false, layout });
   for (const p of PLUGINS) {
     await mermaid.registerExternalDiagrams([await p.load()], { replace: p.replace });
   }

@@ -7,6 +7,7 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { assertInert } from '@mermaid-js/core/svg';
+import elkLayouts from '@mermaid-js/layout-elk';
 import { createMermaid } from 'mermaid';
 import type { ExtensionPlugin } from 'mermaid';
 import { beforeAll, describe, expect, it } from 'vitest';
@@ -111,6 +112,19 @@ describe.each(files)('%s', (file) => {
     const known = new Set([...model.elements, ...model.boundaries].map((x) => x.alias));
     const drawable = model.rels.filter((r) => known.has(r.from) && known.has(r.to)).length;
     expect(layout.rels).toHaveLength(drawable);
+  });
+});
+
+describe('with @mermaid-js/layout-elk', () => {
+  it('lays C4 out with ELK when the layout config names it', async () => {
+    const other = createMermaid();
+    other.registerLayoutLoaders(elkLayouts);
+    other.initialize({ discovery: false, layout: 'elk' });
+    await other.registerExternalDiagrams([c4], { replace: true });
+    const text = readFileSync(join(FIXTURES, 'regression-boundary-direction.mmd'), 'utf8');
+    const r = await other.render('elk', text);
+    expect(r.warnings.map((w) => w.code)).toEqual([]);
+    expect(r.svg).toContain('>Warehouse</');
   });
 });
 
