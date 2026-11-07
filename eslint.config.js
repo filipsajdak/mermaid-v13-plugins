@@ -84,7 +84,13 @@ export default defineConfig(
     },
   },
   {
-    files: ['harness/**/*.mjs', 'test/**/*.ts', 'packages/*/test/**/*.ts', 'eslint.config.js'],
+    files: [
+      'harness/**/*.mjs',
+      'packages/*/scripts/**/*.mjs',
+      'test/**/*.ts',
+      'packages/*/test/**/*.ts',
+      'eslint.config.js',
+    ],
     languageOptions: {
       globals: { ...globals.node },
     },
