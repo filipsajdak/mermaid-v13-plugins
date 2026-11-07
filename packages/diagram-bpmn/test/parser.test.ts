@@ -287,3 +287,31 @@ accDescr {
     });
   });
 });
+
+describe('lines that cannot be scanned cheaply', () => {
+  /** Generous for one linear pass over 50,000 characters, far below a quadratic one. */
+  const BOUND_MS = 250;
+  const LONG = 50_000;
+
+  it.each([
+    // Four times the length: a pass over the rest of the text from each line took 1.8 s here.
+    [
+      'an unclosed accDescr block on every line',
+      `bpmn-beta LR\n${'accDescr {\n'.repeat((4 * LONG) / 11)}`,
+    ],
+    ['a long run of dashes', `bpmn-beta LR\n  a ${'-'.repeat(LONG)}`],
+    ['a labelled arrow that never closes', `bpmn-beta LR\n  a -- ${'x-'.repeat(LONG / 2)}`],
+    ['a long unterminated quote', `bpmn-beta LR\n  task t "${'x'.repeat(LONG)}`],
+    ['many unterminated quotes', `bpmn-beta LR\n${'  task t "x\n'.repeat(LONG / 12)}`],
+    ['a long run of dots', `bpmn-beta LR\n  a ${'.'.repeat(LONG)}`],
+  ])('reads %s in linear time', (_name, text) => {
+    parseBpmn('bpmn-beta LR\n  task t "T"\n');
+    const start = performance.now();
+    try {
+      parseBpmn(text);
+    } catch {
+      // A refused diagram is fine; only the time is measured.
+    }
+    expect(performance.now() - start).toBeLessThan(BOUND_MS);
+  });
+});

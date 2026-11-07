@@ -176,6 +176,8 @@ interface Line {
 function lexLines(text: string, from: number, out: TokenWriter): Line[] {
   const lines: Line[] = [];
   let at = from;
+  /** The next `}` at or after the last `accDescr` tried; -1 once there is none. */
+  let closeBrace = -2;
   while (at <= text.length) {
     let lineEnd = at;
     while (lineEnd < text.length && !isLineBreak(text[lineEnd])) lineEnd++;
@@ -212,8 +214,14 @@ function lexLines(text: string, from: number, out: TokenWriter): Line[] {
         i = conn.end;
         continue;
       }
+      // The block runs to the next `}`, found once: an unclosed block on every line would
+      // otherwise scan the rest of the text from each of them.
+      if (closeBrace !== -1 && closeBrace < i && text.startsWith('accDescr', i)) {
+        closeBrace = text.indexOf('}', i);
+      }
       ACC_DESCR_BLOCK.lastIndex = i;
-      const block = ACC_DESCR_BLOCK.exec(text);
+      const block =
+        closeBrace !== -1 && text.startsWith('accDescr', i) ? ACC_DESCR_BLOCK.exec(text) : null;
       if (block) {
         const end = i + block[0].length;
         tokens.push({ type: 'meta', text: block[0], start: i, end });
