@@ -48,8 +48,9 @@ export interface Scene {
   readonly pad: number;
   /** The narrowest element. */
   readonly minWidth: number;
-  /** Between nodes and between ranks. */
+  /** Between nodes, and between ranks unless `rankSpacing` says otherwise. */
   readonly spacing: number;
+  readonly rankSpacing?: number;
   /** Around the whole drawing. */
   readonly margin: number;
   /** Above and below the title. */
@@ -137,7 +138,7 @@ export function layoutScene(scene: Scene, ctx: RenderContext): SceneLayout {
           }
         : {}),
     })),
-    spacing: { node: scene.spacing, rank: scene.spacing, edge: 10 },
+    spacing: { node: scene.spacing, rank: scene.rankSpacing ?? scene.spacing, edge: 10 },
     routing: scene.routing ?? 'stepped',
     headRoom: ctx.theme.number('arrowheadLength') + ctx.theme.number('arrowheadGap'),
   };

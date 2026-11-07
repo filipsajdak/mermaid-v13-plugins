@@ -6,7 +6,7 @@ import type { OutlinePaint, SvgWriter } from '@mermaid-js/core/svg';
 import type { C4Block } from './blocks.ts';
 
 /** The shapes C4 elements are drawn as. */
-export type C4Shape = 'rounded' | 'person' | 'cylinder' | 'queue' | 'component';
+export type C4Shape = 'rounded' | 'box' | 'person' | 'cylinder' | 'queue' | 'component';
 
 /** A shape's box around a label block. */
 export interface C4Sized {
@@ -164,6 +164,10 @@ export function drawShape(
       }
       return;
     }
+    case 'box':
+      // Square corners: c4-beta's `rect`.
+      w.outline('node', 'rect', { ...attrs, x: left, y: top, width: el.width, height: el.height });
+      return;
     default:
       w.outline('node', 'rect', { ...attrs, ...rect });
   }
