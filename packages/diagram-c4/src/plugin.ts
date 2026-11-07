@@ -9,12 +9,7 @@ import type { C4Model } from './parser/index.ts';
 import { c4Labels } from './labels.ts';
 import { renderC4 } from './render/index.ts';
 
-/**
- * The legacy C4 plugin. Its id is `c4`, a first-party v12 type that the v13 alpha detects but
- * has no package for, so it registers with `registerExternalDiagrams([c4], { replace: true })`
- * and takes that type's place in the detection order.
- */
-export const c4: DiagramPlugin<C4Model, C4Layout> = {
+const plugin: DiagramPlugin<C4Model, C4Layout> = {
   id: 'c4',
   aliases: ['C4Context', 'C4Container', 'C4Component', 'C4Dynamic', 'C4Deployment'],
   formats: ['svg'],
@@ -30,3 +25,15 @@ export const c4: DiagramPlugin<C4Model, C4Layout> = {
   layout: layoutC4,
   render: renderC4,
 };
+
+/**
+ * The legacy C4 plugin. Its id is `c4`, a first-party v12 type that the v13 alpha detects but
+ * has no package for, so it registers with `registerExternalDiagrams([c4], { replace: true })`
+ * and takes that type's place in the detection order.
+ *
+ * It names itself as `diagram`: the registry's lazy paths (a `loader`, the `mermaid`
+ * manifest) load that member, else `layout`, so without it they load the layout method.
+ */
+export const c4: DiagramPlugin<C4Model, C4Layout> & {
+  readonly diagram: DiagramPlugin<C4Model, C4Layout>;
+} = { ...plugin, diagram: plugin };

@@ -7,14 +7,7 @@ import type { SwimlaneModel } from './model.ts';
 import { parseSwimlane } from './parser.ts';
 import { renderSwimlane } from './render.ts';
 
-/**
- * The swimlane plugin: `swimlane-beta` diagrams, which are flowcharts laid out in lanes. Its id
- * is `swimlane`, a type the v13 alpha detects but has no package for, so it registers with
- * `registerExternalDiagrams([swimlane], { replace: true })`.
- *
- * `layoutKind` is `custom`: the swimlane engine always lays it out, whatever `layout` says.
- */
-export const swimlane: DiagramPlugin<SwimlaneModel, SwimlaneLayout> = {
+const plugin: DiagramPlugin<SwimlaneModel, SwimlaneLayout> = {
   id: 'swimlane',
   formats: ['svg'],
   layoutKind: 'custom',
@@ -35,3 +28,17 @@ export const swimlane: DiagramPlugin<SwimlaneModel, SwimlaneLayout> = {
   layout: layoutSwimlane,
   render: renderSwimlane,
 };
+
+/**
+ * The swimlane plugin: `swimlane-beta` diagrams, which are flowcharts laid out in lanes. Its id
+ * is `swimlane`, a type the v13 alpha detects but has no package for, so it registers with
+ * `registerExternalDiagrams([swimlane], { replace: true })`.
+ *
+ * `layoutKind` is `custom`: the swimlane engine always lays it out, whatever `layout` says.
+ *
+ * It names itself as `diagram`: the registry's lazy paths (a `loader`, the `mermaid`
+ * manifest) load that member, else `layout`, so without it they load the layout method.
+ */
+export const swimlane: DiagramPlugin<SwimlaneModel, SwimlaneLayout> & {
+  readonly diagram: DiagramPlugin<SwimlaneModel, SwimlaneLayout>;
+} = { ...plugin, diagram: plugin };

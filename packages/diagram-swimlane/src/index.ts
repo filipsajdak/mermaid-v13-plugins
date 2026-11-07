@@ -3,7 +3,11 @@
  * flowchart plugin's parser, measuring and drawing, and lays the diagram out with the swimlane
  * engine lifted from mermaid v12.
  */
-export { swimlane } from './plugin.ts';
+import { swimlane } from './plugin.ts';
+
+export { swimlane };
+/** A `loader` that returns this module's namespace hands the registry its `diagram`. */
+export const diagram = swimlane.diagram;
 export { detector } from './detector.ts';
 export { parseSwimlane } from './parser.ts';
 export type { SwimlaneParseOptions, SwimlaneParseResult } from './parser.ts';

@@ -15,7 +15,6 @@ import {
   boundaryIds,
   c4Beta,
   c4BetaCompat,
-  detector,
   parseC4Beta,
 } from '../packages/diagram-c4-beta/src/index.ts';
 import type { C4BetaLayout as C4Layout } from '../packages/diagram-c4-beta/src/index.ts';
@@ -261,30 +260,6 @@ describe('db.spec: config', () => {
       `---\nconfig:\n  c4-beta:\n    personWrappingWidth: 60\n---\n${long}`,
     );
     expect(lines(narrow.svg)).toBeGreaterThan(lines((await render(long)).svg));
-  });
-});
-
-describe('lazy registration', () => {
-  const pkg: unknown = JSON.parse(
-    readFileSync(join(import.meta.dirname, '../packages/diagram-c4-beta/package.json'), 'utf8'),
-  );
-  const manifest: unknown =
-    typeof pkg === 'object' && pkg !== null && 'mermaid' in pkg ? pkg.mermaid : undefined;
-  const load = () => import('../packages/diagram-c4-beta/src/index.ts');
-  it.each([
-    [
-      'a loader that returns the plugin',
-      { id: 'c4-beta', detector, loader: () => Promise.resolve(c4Beta) },
-    ],
-    ['a loader that returns the package namespace', { id: 'c4-beta', detector, loader: load }],
-    ["the package's mermaid manifest", { manifest, detector, load }],
-  ] as const)('loads the plugin through %s', async (_, def) => {
-    const lazy = createMermaid();
-    lazy.initialize({ discovery: false });
-    await lazy.registerExternalDiagrams([def, c4BetaCompat]);
-    const r = await lazy.render('c4b', 'c4-beta context\n person p "Lazy person"\n');
-    expect(r.diagramType).toBe('c4-beta');
-    expect(textOf(r.svg)).toContain('Lazy person');
   });
 });
 

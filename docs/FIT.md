@@ -292,9 +292,10 @@ With the same theme on both sides (`redux-color`), the drawings match the conver
     The registry unwraps whatever a `loader` returns (`registry.js`, `unwrap`): it takes `diagram`, else `layout`, else `default`.
     A manifest's `export` goes through the same step.
     Every diagram plugin has a `layout` method, so it loads that function as the plugin, and the render fails with `plugin.parse is not a function`.
-    `c4Beta` names itself as `diagram`, which fixes a loader that returns the plugin, a loader that returns the package's namespace, and the manifest.
-    Each path has a test that fails without it.
-    Legacy `c4` has the same `layout` member; it is registered eagerly, which is not affected.
+    This hit all four plugins of this repository on all three lazy paths: a loader that returns the plugin, a loader that returns the package's namespace, and the manifest.
+    Eager registration was not affected.
+    Each plugin now names itself as `diagram` (`{ ...plugin, diagram: plugin }`), and each package exports `diagram` for a loader that returns its namespace.
+    `test/lazy-registration.test.ts` renders every plugin through every path; without the self-reference, all nine cases of `c4`, `swimlane` and `bpmn` fail.
 16. **Parser.**
     The converged build parses c4-beta with Langium; the alpha has no Langium, and a plugin may depend only on core.
     The port is a scanner and a recursive descent on parser-kit, as legacy C4's is, but the two grammars share no code.

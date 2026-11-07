@@ -3,7 +3,11 @@
  * as an unofficial Mermaid v13 plugin. Imports `@mermaid-js/core` and this repository's c4-shared
  * only.
  */
-export { c4 } from './plugin.ts';
+import { c4 } from './plugin.ts';
+
+export { c4 };
+/** A `loader` that returns this module's namespace hands the registry its `diagram`. */
+export const diagram = c4.diagram;
 export { detector } from './detector.ts';
 export { parseC4 } from './parser/index.ts';
 export type * from './parser/index.ts';
