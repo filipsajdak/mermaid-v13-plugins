@@ -118,6 +118,7 @@ export interface Edge {
   labelStyle?: string[] | undefined;
   minlen?: number | undefined;
   thickness?: 'normal' | 'thick' | 'invisible' | 'dotted' | undefined;
+  pattern?: string | undefined;
   look?: string | undefined;
   width?: number | undefined;
   height?: number | undefined;
