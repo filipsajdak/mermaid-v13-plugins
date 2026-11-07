@@ -168,4 +168,34 @@ describe('config the alpha drops', () => {
       ]),
     ).rejects.toThrow('Config fragment "c4-keys": "c4" is a core config key');
   });
+
+  it('carries the keys into an extension section of its own through config aliases', async () => {
+    let seen: unknown;
+    const other = createMermaid();
+    other.initialize({ discovery: false });
+    await other.registerExternalDiagrams([c4], { replace: true });
+    await other.registerExternalDiagrams([
+      {
+        id: 'c4-converged',
+        config: {
+          id: 'c4-converged',
+          keys: { 'c4-converged': { showStereotypes: 0, boundaryDirection: 0 } },
+          aliases: [
+            { from: 'c4.showStereotypes', to: 'c4-converged.showStereotypes' },
+            { from: 'c4.boundaryDirection', to: 'c4-converged.boundaryDirection' },
+          ],
+        },
+        postLayout(laidOut, ctx) {
+          seen = Object.entries(ctx.config).find(([k]) => k === 'c4-converged')?.[1];
+          return laidOut;
+        },
+      },
+    ]);
+    const r = await other.render(
+      'cfg',
+      '---\nconfig:\n  c4:\n    showStereotypes: false\n    boundaryDirection: LR\n---\nC4Context\nPerson(a, "A")',
+    );
+    expect(r.warnings).toEqual([]);
+    expect(seen).toEqual({ showStereotypes: false, boundaryDirection: 'LR' });
+  });
 });

@@ -4,7 +4,7 @@ Legacy C4 fits the v13 plugin contract: all 57 legacy C4 sources render in Node 
 The sources are mermaid's `develop` at 63333fd8d plus the open C4 pull requests listed in mermaid-js/mermaid#7849.
 Three things do not fit.
 It can only be registered explicitly, with `registerExternalDiagrams([c4], { replace: true })`, because discovery skips it.
-The two `c4` config keys the converged build adds cannot be declared by a plugin (a `BLOCKER`).
+The two `c4` config keys the converged build adds cannot be declared in the `c4` section; an extension can carry them in a section of its own, through config aliases.
 And a boundary's own direction is dropped when a relationship crosses into it.
 Everything below is measured against `mermaid@13.0.0-alpha.1` and `@mermaid-js/core@13.0.0-alpha.1`, pinned exactly.
 
@@ -108,7 +108,7 @@ Evidence: `test/registration.test.ts`, "detection order"; the 12.3.0 column come
 | d3 and DOM                              | none: labels measured by `ctx.measurer`, SVG written through `SvgWriter`                 | FITS                | lint bans DOM globals in plugin sources                                                                                                                                                                            |
 | Themes                                  | `ctx.theme` and `--mermaid-*` variables                                                  | GAP                 | notes 1 and 6                                                                                                                                                                                                      |
 | Config: v12's `c4` keys                 | core's schema has the `c4` section; the plugin's `configDefaults` fill it                | FITS                | `c4.wrap`, `c4.width`, the fonts and the palette colours all apply                                                                                                                                                 |
-| Config: converged-only keys             | none                                                                                     | BLOCKER             | note 7                                                                                                                                                                                                             |
+| Config: converged-only keys             | an extension's own section, filled from `c4.*` by config aliases; not wired yet          | GAP                 | note 7                                                                                                                                                                                                             |
 | Icons and sprites                       | nothing to port; `<image href>` would go through `checkImageUrl`                         | FITS                | the converged build draws no sprite image, `$sprite` only names a shape (`database`, `queue`); `checkImageUrl` allows relative, http(s) and `data:image` png, jpeg, gif and webp, not SVG data URLs (`svg/url.js`) |
 | Legend (`SHOW_LEGEND`)                  | nothing to port                                                                          | FITS, parity        | the converged grammar has no `SHOW_LEGEND`; `$legendText` and `$legendSprite` are parsed and kept in the model, not drawn                                                                                          |
 | Text wrap and HTML labels               | `layoutLabel` wraps greedily at a width; each line group has its own font                | FITS                | the converged build's `<b>` and `<small><i>` edge labels become bold and italic sections                                                                                                                           |
@@ -153,7 +153,11 @@ Evidence: `test/registration.test.ts`, "detection order"; the 12.3.0 column come
    Front matter `c4: { showStereotypes: false }` gives `CONFIG_UNKNOWN_KEY`: `Unknown config key "c4.showStereotypes"; ignored.`, although the plugin's `configDefaults` declares the key.
    An extension's config fragment cannot declare it either: registering one with `keys: { c4: { showStereotypes: 0 } }` throws `TypeError: Config fragment "c4-keys": "c4" is a core config key`.
    Per-element `UpdateElementStyle(x, $showStereotype="false")` still works, because it is diagram syntax.
-   Both behaviours are pinned in `test/c4-render.test.ts`.
+   A config alias gets around it.
+   An extension declares a section of its own (`c4-converged`) and aliases `c4.showStereotypes` and `c4.boundaryDirection` into it.
+   Front matter `c4: { showStereotypes: false, boundaryDirection: LR }` then gives no warning, and the render's config holds `c4-converged: { showStereotypes: false, boundaryDirection: 'LR' }`.
+   The legacy plugin does not read that section yet.
+   All three behaviours are pinned in `test/c4-render.test.ts`.
 
 ## Parity with the converged build
 
