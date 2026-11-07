@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "noEmit": true,
+    // The tests render through mermaid's API, whose types name DOM classes (docs/FIT.md, note 2).
+    // The build (tsconfig.build.json) compiles src alone, without DOM.
+    "lib": ["ES2022", "DOM"],
+    "types": ["node"]
+  },
+  "include": ["src", "test"]
+}

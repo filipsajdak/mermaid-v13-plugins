@@ -66,6 +66,24 @@ export default defineConfig(
     },
   },
   {
+    // bpmn-beta is laid out in pools and lanes by our lifted swimlane engine, as in v12.
+    files: ['packages/diagram-bpmn/src/**/*.ts'],
+    rules: {
+      'no-restricted-imports': [
+        'error',
+        {
+          patterns: [
+            {
+              regex: '^(?!@mermaid-js/core(/|$)|@mermaid-v13-plugins/swimlane-engine$|\\.{1,2}/)',
+              message:
+                'The BPMN plugin imports only @mermaid-js/core, the swimlane engine and its own files.',
+            },
+          ],
+        },
+      ],
+    },
+  },
+  {
     files: ['harness/**/*.mjs', 'test/**/*.ts', 'packages/*/test/**/*.ts', 'eslint.config.js'],
     languageOptions: {
       globals: { ...globals.node },
