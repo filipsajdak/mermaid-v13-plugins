@@ -12,7 +12,7 @@ It is not affiliated with or endorsed by the Mermaid project or mermaid.ai.
 Everything here is built and tested against exactly `mermaid@13.0.0-alpha.1` and `@mermaid-js/core@13.0.0-alpha.1`.
 The npm tag `v13-alpha` moves every few days, so the versions are pinned rather than tagged.
 Each plugin declares `@mermaid-js/core` as a peer dependency, at that exact version, and has no other runtime dependency.
-The exceptions are the swimlane plugin, which also peer-depends on `@mermaid-js/diagram-flowchart` (a swimlane diagram is a flowchart in lanes), and the swimlane and BPMN plugins, which depend on our private swimlane engine.
+The exceptions are the swimlane plugin, which also peer-depends on `@mermaid-js/diagram-flowchart` (a swimlane diagram is a flowchart in lanes), the swimlane and BPMN plugins, which depend on our private swimlane engine, and the two C4 plugins, which depend on our private `c4-shared`.
 
 ## Status
 
@@ -81,7 +81,7 @@ The harness renders in Node with no DOM.
 It rasterises through the installed Chrome (`CHROME_PATH` to point at another) and never downloads a browser.
 `pnpm build` must run before `pnpm render`, `pnpm smoke` and `pnpm sheet`, which load the built packages.
 
-Plugins follow the v13 conventions: they import only `@mermaid-js/core` (the swimlane plugin also the flowchart plugin, and the swimlane and BPMN plugins our engine), use no DOM, write SVG only through `SvgWriter`, take colours from theme variables, return parse problems as diagnostics instead of throwing, take lengths from the measurer, and render deterministically.
+Plugins follow the v13 conventions: they import only `@mermaid-js/core` (the swimlane plugin also the flowchart plugin, the swimlane and BPMN plugins our engine, and the C4 plugins `c4-shared`), use no DOM, write SVG only through `SvgWriter`, take colours from theme variables, return parse problems as diagnostics instead of throwing, take lengths from the measurer, and render deterministically.
 Lint enforces the import and DOM rules.
 
 ## License
