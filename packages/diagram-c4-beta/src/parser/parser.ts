@@ -267,6 +267,8 @@ class Parser {
   private direction: C4BetaDirection = 'TB';
   private legend = true;
   private depth = 0;
+  /** The ids of the elements whose `{ }` block is open, outermost first. */
+  private readonly openIds: string[] = [];
   private stopped = false;
   private readonly text: string;
   private readonly limits: C4BetaParseOptions['limits'];
@@ -511,31 +513,31 @@ class Parser {
     const tags: string[] = [];
     while (this.peek()?.k === T.Tag) tags.push(this.next()?.v ?? '');
     const range = { start: kw.s, end: this.toks[this.p - 1]?.e ?? idTok.e };
-    // v12 rejects an element declared inside one with its own id.
-    for (let a: string | undefined = parent?.id; a !== undefined; a = this.lastElement(a)?.parent) {
-      if (a === idTok.v) {
-        this.error(
-          'C4B_ID_INSIDE_ITSELF',
-          `The id "${idTok.v}" is declared inside an element with the same id. Every element needs its own id.`,
-          { start: idTok.s, end: idTok.e },
-        );
-        break;
-      }
-    }
+    // v12 rejects an element declared inside one with its own id. It is not recorded, so no
+    // element is ever its own ancestor; its block is still read, and its children belong to
+    // the open element of that id.
+    const insideItself = this.openIds.includes(idTok.v);
+    if (insideItself)
+      this.error(
+        'C4B_ID_INSIDE_ITSELF',
+        `The id "${idTok.v}" is declared inside an element with the same id. Every element needs its own id.`,
+        { start: idTok.s, end: idTok.e },
+      );
     const ast = this.st.ids.node(idTok.v);
     this.st.symbol(idTok.v, 'element', { start: idTok.s, end: idTok.e }, 'def');
     const [name, description, technology] = strings;
-    this.elements.push({
-      id: idTok.v,
-      ast,
-      kind: kw.v,
-      name: name?.v ?? '',
-      ...(description !== undefined ? { description: description.v } : {}),
-      ...(technology !== undefined ? { technology: technology.v } : {}),
-      ...(instances !== undefined ? { instances } : {}),
-      tags,
-      ...(parent ? { parent: parent.id } : {}),
-    });
+    if (!insideItself)
+      this.elements.push({
+        id: idTok.v,
+        ast,
+        kind: kw.v,
+        name: name?.v ?? '',
+        ...(description !== undefined ? { description: description.v } : {}),
+        ...(technology !== undefined ? { technology: technology.v } : {}),
+        ...(instances !== undefined ? { instances } : {}),
+        tags,
+        ...(parent ? { parent: parent.id } : {}),
+      });
     this.checkSizes(range);
     if (this.peek()?.k !== T.LBrace) {
       this.leaf(into, ast, 'element', kw.v, range);
@@ -558,9 +560,13 @@ class Parser {
     const node = { id: ast, type: 'element', keyword: kw.v, range: { ...range }, children };
     into.push(node);
     this.depth++;
+    this.openIds.push(idTok.v);
     const block = { id: idTok.v, children: node.children };
     for (;;) {
-      if (this.stopped) return;
+      if (this.stopped) {
+        this.openIds.pop();
+        return;
+      }
       const t = this.peek();
       if (!t) {
         this.error(
@@ -578,18 +584,10 @@ class Parser {
       }
       this.statement(block);
     }
+    this.openIds.pop();
     this.depth--;
     this.st.endStatement(span, node.range.end);
     this.endOfStatement('the closing }');
-  }
-
-  /** The latest element declared with `id`: the one that opened an enclosing block. */
-  private lastElement(id: string): C4BetaElement | undefined {
-    for (let i = this.elements.length - 1; i >= 0; i--) {
-      const e = this.elements[i];
-      if (e?.id === id) return e;
-    }
-    return undefined;
   }
 
   private relationship(into: C4BetaStatement[]): void {
