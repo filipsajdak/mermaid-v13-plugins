@@ -97,13 +97,16 @@ const unescape = (raw: string): string =>
 
 /** v12's common value converter for single-line title and accessibility text. */
 const oneLine = (s: string): string => s.trim().replace(/[\t ]{2,}/g, ' ');
-/** v12's common value converter for `accDescr { ... }`. */
+/**
+ * v12's common value converter for `accDescr { ... }`: each line trimmed, blank lines dropped,
+ * runs of spaces and tabs collapsed to one space. Line by line, so it stays linear in the text.
+ */
 const multiLine = (s: string): string =>
   s
-    .replace(/^\s*/gm, '')
-    .replace(/\s+$/gm, '')
-    .replace(/[\t ]{2,}/gm, ' ')
-    .replace(/[\n\r]{2,}/gm, '\n');
+    .split(/\r\n|\r|\n/)
+    .map(oneLine)
+    .filter((line) => line !== '')
+    .join('\n');
 
 /** Lexes the body after the header into tokens; comments and directives are dropped. */
 function lex(
