@@ -63,7 +63,6 @@ interface BaseNode {
   height?: number | undefined;
   labelBBox?: { width: number | undefined; height: number };
   groupTitleRect?: GroupTitleRect | undefined;
-  intersect?: ((point: any) => any) | undefined;
   rx?: number | undefined;
   ry?: number | undefined;
   x?: number | undefined;
@@ -142,5 +141,7 @@ export interface LayoutData {
   diagramId?: string | undefined;
   /** `branches` asks the layout to layer each branch of the flow on its own. */
   laneLayering?: 'branches' | undefined;
+  // v12's own type: the lifted engine reads extras (`other`, `direction`, `nodeSpacing`) untyped.
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   [key: string]: any;
 }

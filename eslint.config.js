@@ -106,8 +106,13 @@ export default defineConfig(
   {
     // The swimlane engine is lifted from mermaid v12 and kept close to it, so a diff against v12
     // stays readable. v12 linted it without the type-checked strict rules; the DOM ban and the
-    // import rule below still hold. New code in the package is held to them by review.
+    // import rule below still hold. The files written for v13 are not lifted, and keep every rule.
     files: ['packages/swimlane-engine/src/**/*.ts'],
+    ignores: [
+      'packages/swimlane-engine/src/index.ts',
+      'packages/swimlane-engine/src/logger.ts',
+      'packages/swimlane-engine/src/types.ts',
+    ],
     rules: {
       '@typescript-eslint/consistent-type-assertions': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
