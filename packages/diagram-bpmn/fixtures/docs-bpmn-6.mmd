@@ -1,0 +1,8 @@
+bpmn-beta LR
+  lane "Fulfilment"
+    user task t1 "Review order"
+    service task t2 "Charge card"
+    script task t3 "Generate label"
+    subprocess sp1 "Pack goods"
+    call c1 "Ship via carrier"
+  t1 --> t2 --> t3 --> sp1 --> c1

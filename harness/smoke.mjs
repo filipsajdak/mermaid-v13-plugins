@@ -15,7 +15,7 @@ import { undeclaredAliases } from './lib/svg-checks.mjs';
 
 /**
  * Each fixture and the labels its SVG must contain, as XML-escaped text: the placeholder
- * plugin's, one real C4 diagram, and a swimlane diagram with phases.
+ * plugin's, one real C4 diagram, a swimlane diagram with phases, and a BPMN collaboration.
  */
 const CASES = [
   {
@@ -46,6 +46,13 @@ const CASES = [
       'aria-roledescription="swimlane"',
     ],
     absent: ['phase intake'],
+  },
+  {
+    file: fileURLToPath(
+      new URL('../packages/diagram-bpmn/fixtures/docs-bpmn-8.mmd', import.meta.url),
+    ),
+    labels: ['Customer', 'Supplier', 'Needs goods', 'Place order', 'Receive order', 'Fulfilled'],
+    absent: [],
   },
 ];
 

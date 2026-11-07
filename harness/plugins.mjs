@@ -19,4 +19,9 @@ export const PLUGINS = [
     load: async () => (await import('@mermaid-v13-plugins/diagram-swimlane')).swimlane,
     replace: true,
   },
+  {
+    name: '@mermaid-v13-plugins/diagram-bpmn',
+    load: async () => (await import('@mermaid-v13-plugins/diagram-bpmn')).bpmn,
+    replace: false,
+  },
 ];

@@ -1,0 +1,12 @@
+bpmn-beta LR
+  pool "Customer"
+    lane "Buyer"
+      start s1 "Needs goods"
+      task t1 "Place order"
+  pool "Supplier"
+    lane "Sales"
+      task t2 "Receive order"
+      end e1 "Fulfilled"
+  s1 --> t1
+  t1 -.-> t2
+  t2 --> e1

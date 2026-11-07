@@ -1,0 +1,16 @@
+---
+config:
+  themeVariables:
+    bpmn:
+      activityFill: '#eef6ff'
+      activityStroke: '#2563eb'
+      gatewayFill: '#fff7ed'
+      gatewayStroke: '#ea580c'
+---
+bpmn-beta LR
+  lane "Themed"
+    start s1 "Begin"
+    task t1 "Work"
+    xor gw "Done?"
+    end e1 "End"
+  s1 --> t1 --> gw --> e1

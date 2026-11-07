@@ -1,0 +1,6 @@
+bpmn-beta LR
+  lane "Fulfilment"
+    receive task t1 "Receive the order"
+    rule task t2 "Apply the price list"
+    send task t3 "Confirm"
+  t1 --> t2 --> t3
