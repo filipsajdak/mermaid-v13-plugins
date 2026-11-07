@@ -1,0 +1,31 @@
+{
+  "name": "@mermaid-v13-plugins/c4-shared",
+  "version": "0.0.0",
+  "private": true,
+  "description": "What the legacy C4 and c4-beta plugins share: label blocks, shapes, the layout of a C4 scene and its drawing.",
+  "type": "module",
+  "license": "MIT",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "peerDependencies": {
+    "@mermaid-js/core": "13.0.0-alpha.1"
+  },
+  "devDependencies": {
+    "@mermaid-js/core": "13.0.0-alpha.1"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

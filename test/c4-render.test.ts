@@ -84,18 +84,18 @@ describe.each(files)('%s', (file) => {
     const layout = captured as C4Layout | undefined;
     expect(layout).toBeDefined();
     if (!layout) return;
-    expect(layout.elements.map((e) => e.alias).sort()).toEqual(
+    expect(layout.elements.map((e) => e.id).sort()).toEqual(
       model.elements.map((e) => e.alias).sort(),
     );
 
     // No element overlaps another.
-    const boxes = layout.elements.map((e) => ({ alias: e.alias, box: box(e) }));
+    const boxes = layout.elements.map((e) => ({ alias: e.id, box: box(e) }));
     for (const [i, a] of boxes.entries()) {
       for (const b of boxes.slice(i + 1))
         expect(overlaps(a.box, b.box), `${a.alias} overlaps ${b.alias}`).toBe(false);
     }
     // Each element sits in its boundary, each boundary in its parent.
-    const groups = new Map(layout.boundaries.map((b) => [b.alias, box(b)]));
+    const groups = new Map(layout.groups.map((b) => [b.id, box(b)]));
     for (const el of model.elements) {
       const own = boxes.find((b) => b.alias === el.alias)?.box;
       const parent = el.parent === undefined ? undefined : groups.get(el.parent);
@@ -111,7 +111,7 @@ describe.each(files)('%s', (file) => {
     // Every relationship between declared things has a route.
     const known = new Set([...model.elements, ...model.boundaries].map((x) => x.alias));
     const drawable = model.rels.filter((r) => known.has(r.from) && known.has(r.to)).length;
-    expect(layout.rels).toHaveLength(drawable);
+    expect(layout.edges).toHaveLength(drawable);
   });
 });
 

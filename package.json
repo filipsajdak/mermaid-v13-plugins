@@ -20,7 +20,7 @@
     "sheet": "node harness/sheet.mjs",
     "serve": "node harness/serve.mjs",
     "smoke": "node harness/smoke.mjs",
-    "check": "pnpm typecheck && pnpm test && pnpm lint && pnpm format:check"
+    "check": "pnpm build && pnpm typecheck && pnpm test && pnpm lint && pnpm format:check"
   },
   "devDependencies": {
     "@eslint/js": "10.0.1",

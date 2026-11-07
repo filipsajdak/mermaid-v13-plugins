@@ -37,8 +37,9 @@ export default defineConfig(
         {
           patterns: [
             {
-              regex: '^(?!@mermaid-js/core(/|$)|\\.{1,2}/)',
-              message: 'A plugin imports only @mermaid-js/core and its own files.',
+              regex: '^(?!@mermaid-js/core(/|$)|@mermaid-v13-plugins/|\\.{1,2}/)',
+              message:
+                "A plugin imports only @mermaid-js/core, this repository's packages and its own files.",
             },
           ],
         },

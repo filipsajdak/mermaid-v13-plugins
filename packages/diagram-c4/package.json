@@ -26,6 +26,9 @@
   "engines": {
     "node": ">=20"
   },
+  "dependencies": {
+    "@mermaid-v13-plugins/c4-shared": "workspace:*"
+  },
   "peerDependencies": {
     "@mermaid-js/core": "13.0.0-alpha.1"
   },

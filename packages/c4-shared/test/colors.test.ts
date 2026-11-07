@@ -4,7 +4,7 @@
  */
 import { contrastRatio, luminance, parseColor } from '@mermaid-js/core/theme';
 import { describe, expect, it } from 'vitest';
-import { readableOn } from '../src/render/colors.ts';
+import { readableOn } from '../src/colors.ts';
 
 const rgba = (c: string) => parseColor(c)!;
 const ratio = (one: string, other: string) => contrastRatio(rgba(one), rgba(other));
