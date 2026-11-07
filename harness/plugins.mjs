@@ -15,6 +15,11 @@ export const PLUGINS = [
     replace: true,
   },
   {
+    name: '@mermaid-v13-plugins/diagram-c4 (the converged config keys)',
+    load: async () => (await import('@mermaid-v13-plugins/diagram-c4')).c4Compat,
+    replace: false,
+  },
+  {
     name: '@mermaid-v13-plugins/diagram-c4-beta',
     load: async () => (await import('@mermaid-v13-plugins/diagram-c4-beta')).c4Beta,
     replace: false,

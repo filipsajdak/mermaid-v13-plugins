@@ -12,7 +12,7 @@ import { createMermaid } from 'mermaid';
 import type { ExtensionPlugin } from 'mermaid';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { undeclaredAliases } from '../harness/lib/svg-checks.mjs';
-import { c4, parseC4 } from '../packages/diagram-c4/src/index.ts';
+import { c4, c4Compat, parseC4 } from '../packages/diagram-c4/src/index.ts';
 import type { C4Layout } from '../packages/diagram-c4/src/index.ts';
 
 const FIXTURES = join(import.meta.dirname, '../packages/diagram-c4/fixtures');
@@ -169,34 +169,48 @@ describe('config the alpha drops', () => {
     ).rejects.toThrow('Config fragment "c4-keys": "c4" is a core config key');
   });
 
-  it('carries the keys into an extension section of its own through config aliases', async () => {
-    let seen: unknown;
-    const other = createMermaid();
-    other.initialize({ discovery: false });
-    await other.registerExternalDiagrams([c4], { replace: true });
-    await other.registerExternalDiagrams([
-      {
-        id: 'c4-converged',
-        config: {
-          id: 'c4-converged',
-          keys: { 'c4-converged': { showStereotypes: 0, boundaryDirection: 0 } },
-          aliases: [
-            { from: 'c4.showStereotypes', to: 'c4-converged.showStereotypes' },
-            { from: 'c4.boundaryDirection', to: 'c4-converged.boundaryDirection' },
-          ],
-        },
-        postLayout(laidOut, ctx) {
-          seen = Object.entries(ctx.config).find(([k]) => k === 'c4-converged')?.[1];
-          return laidOut;
-        },
-      },
-    ]);
-    const r = await other.render(
-      'cfg',
-      '---\nconfig:\n  c4:\n    showStereotypes: false\n    boundaryDirection: LR\n---\nC4Context\nPerson(a, "A")',
-    );
-    expect(r.warnings).toEqual([]);
-    expect(seen).toEqual({ showStereotypes: false, boundaryDirection: 'LR' });
+  describe('with c4Compat', () => {
+    const withCompat = async (init: Record<string, unknown> = {}) => {
+      const other = createMermaid();
+      other.initialize({ discovery: false, ...init });
+      await other.registerExternalDiagrams([c4], { replace: true });
+      await other.registerExternalDiagrams([c4Compat, capture]);
+      return other;
+    };
+
+    it('takes c4.showStereotypes from front matter and from initialize', async () => {
+      const fromFrontMatter = await (
+        await withCompat()
+      ).render(
+        'cfg',
+        '---\nconfig:\n  c4:\n    showStereotypes: false\n---\nC4Context\nPerson(a, "A")',
+      );
+      expect(fromFrontMatter.warnings).toEqual([]);
+      expect(fromFrontMatter.svg).not.toContain('[Person]');
+      const fromInitialize = await (
+        await withCompat({ c4: { showStereotypes: false } })
+      ).render('cfg', 'C4Context\nPerson(a, "A")');
+      expect(fromInitialize.warnings).toEqual([]);
+      expect(fromInitialize.svg).not.toContain('[Person]');
+    });
+
+    it('takes c4.boundaryDirection for a boundary that sets no direction', async () => {
+      const source = (direction: string) =>
+        `---\nconfig:\n  c4:\n    boundaryDirection: ${direction}\n---\nC4Context\nBoundary(b, "B") {\n  Person(p, "P")\n  Person(q, "Q")\n  Rel(p, q, "Calls")\n}`;
+      const placed = async (direction: string) => {
+        captured = undefined;
+        const r = await (await withCompat()).render('dir', source(direction));
+        expect(r.warnings).toEqual([]);
+        const [p, q] = ['p', 'q'].map((id) => captured?.elements.find((e) => e.id === id));
+        return { p, q };
+      };
+      const lr = await placed('LR');
+      expect(lr.p?.y).toBe(lr.q?.y);
+      expect(lr.p?.x).not.toBe(lr.q?.x);
+      const tb = await placed('TB');
+      expect(tb.p?.x).toBe(tb.q?.x);
+      expect(tb.p?.y).not.toBe(tb.q?.y);
+    });
   });
 });
 

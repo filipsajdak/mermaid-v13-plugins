@@ -1,6 +1,7 @@
 /**
  * Legacy C4 diagrams (`C4Context`, `C4Container`, `C4Component`, `C4Dynamic`, `C4Deployment`)
- * as an unofficial Mermaid v13 plugin. Imports `@mermaid-js/core` only.
+ * as an unofficial Mermaid v13 plugin. Imports `@mermaid-js/core` and this repository's c4-shared
+ * only.
  */
 export { c4 } from './plugin.ts';
 export { detector } from './detector.ts';
@@ -9,4 +10,4 @@ export type * from './parser/index.ts';
 export { layoutC4 } from './layout/index.ts';
 export type { C4Layout } from './layout/index.ts';
 export { renderC4 } from './render/index.ts';
-export { c4ConfigDefaults } from './config.ts';
+export { c4Compat, c4ConfigDefaults } from './config.ts';

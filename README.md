@@ -39,13 +39,15 @@ Then, in Node:
 
 ```js
 import { createMermaid } from 'mermaid';
-import { c4 } from '@mermaid-v13-plugins/diagram-c4';
+import { c4, c4Compat } from '@mermaid-v13-plugins/diagram-c4';
 
 const mermaid = createMermaid();
 // Our packages are registered explicitly; Node discovery would skip the C4 one (see docs/FIT.md).
 mermaid.initialize({ discovery: false });
 // The alpha knows the `c4` type but ships no package for it, so the plugin takes its slot.
 await mermaid.registerExternalDiagrams([c4], { replace: true });
+// c4Compat lets `c4.showStereotypes` and `c4.boundaryDirection` through (see docs/FIT.md, note 7).
+await mermaid.registerExternalDiagrams([c4Compat]);
 
 const source =
   'C4Context\n  Person(user, "User")\n  System(app, "App")\n  Rel(user, app, "Uses")\n';
