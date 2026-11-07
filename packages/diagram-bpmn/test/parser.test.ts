@@ -1,6 +1,7 @@
 // v12's parser/bpmn.spec.ts (the bpmn-beta series, #8166), ported: parseBpmn throws through
 // parseOrThrow, which turns the first diagnostic into v12's message.
 import { describe, it, expect } from 'vitest';
+import { arrowLabel, parseBpmn as parseBpmnResult } from '../src/parser.ts';
 import { parseOrThrow as parseBpmn } from './helpers.ts';
 
 describe('bpmn parser', () => {
@@ -313,5 +314,47 @@ describe('lines that cannot be scanned cheaply', () => {
       // A refused diagram is fine; only the time is measured.
     }
     expect(performance.now() - start).toBeLessThan(BOUND_MS);
+  });
+});
+
+describe('the label of a labelled arrow', () => {
+  /** Generous for one linear pass over 200,000 characters, far below a quadratic one. */
+  const BOUND_MS = 250;
+  const LONG = 200_000;
+  const timed = (run: () => unknown) => {
+    const start = performance.now();
+    run();
+    return performance.now() - start;
+  };
+
+  it('reads the label as v12 did', () => {
+    expect(arrowLabel('-- yes -->')).toBe('yes');
+    expect(arrowLabel('--  needs review  ----->')).toBe('needs review');
+    expect(arrowLabel('-- a-b -->')).toBe('a-b');
+    // v12's `-+>$` took a dash that ends the label with the arrow.
+    expect(arrowLabel('-- x- -->')).toBe('x-');
+    expect(arrowLabel('-- x--->')).toBe('x');
+  });
+
+  it.each([
+    ['a long run of dashes before the head', `-- x${'-'.repeat(LONG)}>`],
+    ['a long run of dashes and no head', `-- x${'-'.repeat(LONG)}`],
+    ['a long run of dashes and another character', `-- x${'-'.repeat(LONG)}y`],
+  ])('reads %s in linear time', (_name, arrow) => {
+    arrowLabel('-- warm up -->');
+    expect(timed(() => arrowLabel(arrow))).toBeLessThan(BOUND_MS);
+  });
+
+  it.each([
+    [
+      'a long label of dashes',
+      `bpmn-beta LR\n  task a "A"\n  task b "B"\n  a -- x${'-'.repeat(LONG)}> b\n`,
+    ],
+    [
+      'dashes then another character',
+      `bpmn-beta LR\n  task a "A"\n  task b "B"\n  a -- x${'-'.repeat(LONG)}y --> b\n`,
+    ],
+  ])('parses %s in linear time', (_name, text) => {
+    expect(timed(() => parseBpmnResult(text))).toBeLessThan(BOUND_MS);
   });
 });

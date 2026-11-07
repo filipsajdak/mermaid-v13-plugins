@@ -276,6 +276,17 @@ function lexLines(text: string, from: number, out: TokenWriter): Line[] {
   return lines;
 }
 
+/**
+ * The label of a labelled arrow (`-- label -->`): what lies between the opening `--` and the
+ * closing run of dashes and `>`, trimmed, as v12's `replace(/^--/, '').replace(/-+>$/, '')`
+ * read it. Walked back once from the end: that regular expression retried from every dash.
+ */
+export function arrowLabel(arrow: string): string {
+  let end = arrow.endsWith('>') ? arrow.length - 1 : arrow.length;
+  while (end > 2 && arrow[end - 1] === '-') end--;
+  return arrow.slice(arrow.startsWith('--') ? 2 : 0, end).trim();
+}
+
 /** `an` before a vowel sound (`end`, `intermediate`, `xor`), as v12 wrote it. */
 const articleFor = (word: string): string => (/^[aeiox]/i.test(word) ? 'an' : 'a');
 
@@ -595,7 +606,7 @@ class Reader {
             : {}),
           ...(connector.connector === 'labelled'
             ? {
-                label: connector.text.replace(/^--/, '').replace(/-+>$/, '').trim(),
+                label: arrowLabel(connector.text),
               }
             : {}),
         },
