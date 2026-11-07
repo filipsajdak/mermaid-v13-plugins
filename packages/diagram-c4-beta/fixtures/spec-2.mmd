@@ -1,0 +1,15 @@
+c4-beta container
+title Internet Banking System - Containers
+
+person customer "Personal Banking Customer"
+softwareSystem banking "Internet Banking System" {
+    container spa "Single-Page Application" "Provides banking functionality." "JavaScript/Angular"
+    container api "API Application" "Provides a JSON/HTTPS API." "Java/Spring MVC"
+    container db "Database" "Stores user credentials." "Oracle 12c"
+}
+softwareSystem mainframe "Mainframe Banking System" :::external
+
+customer --> spa : "Uses" "HTTPS"
+spa --> api : "Makes API calls to" "JSON/HTTPS"
+api --> db : "Reads from and writes to" "SQL/TCP"
+api --> mainframe : "Makes API calls to" "XML/HTTPS"

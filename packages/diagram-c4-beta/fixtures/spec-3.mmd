@@ -1,0 +1,7 @@
+c4-beta context
+person user "User"
+softwareSystem core "Core System" "Main system."
+softwareSystem partner "Partner System" :::external
+
+user --> core : "Uses"
+core <--> partner : "Syncs with" "JSON/HTTPS"

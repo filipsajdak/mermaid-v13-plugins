@@ -15,7 +15,7 @@ import { undeclaredAliases } from './lib/svg-checks.mjs';
 
 /**
  * Each fixture and the labels its SVG must contain, as XML-escaped text: the placeholder
- * plugin's, and one real C4 diagram.
+ * plugin's, one legacy C4 diagram and one c4-beta deployment diagram.
  */
 const CASES = [
   {
@@ -31,6 +31,13 @@ const CASES = [
       ),
     ),
     labels: ['Banking Customer A', 'Internet Banking System', 'E-mail system', 'BankBoundary0'],
+    absent: [],
+  },
+  {
+    file: fileURLToPath(
+      new URL('../packages/diagram-c4-beta/fixtures/docs-11.mmd', import.meta.url),
+    ),
+    labels: ['Big Bank plc data center', 'Load Balancer', 'API Application', 'x0..1'],
     absent: [],
   },
 ];

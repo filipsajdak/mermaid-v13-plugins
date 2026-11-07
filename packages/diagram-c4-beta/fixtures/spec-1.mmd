@@ -1,0 +1,12 @@
+c4-beta context
+title Internet Banking System - System Context
+
+person customer "Personal Banking Customer" "A customer of the bank."
+softwareSystem banking "Internet Banking System" "Allows customers to view accounts and make payments."
+softwareSystem mainframe "Mainframe Banking System" "Stores core banking information." :::external
+softwareSystem email "E-mail System" "The internal e-mail system." :::external
+
+customer --> banking : "Views accounts using"
+banking --> mainframe : "Gets account information from" "XML/HTTPS"
+banking --> email : "Sends e-mail using" "SMTP"
+email --> customer : "Sends e-mails to"

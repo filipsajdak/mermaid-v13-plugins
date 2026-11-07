@@ -1,0 +1,9 @@
+c4-beta container
+style database shape:cylinder
+style async line:dashed
+style team-a fill:#1f2937, stroke:#111827
+
+container api "API Application" "Provides a JSON/HTTPS API." "Java/Spring MVC" :::team-a
+container db "Database" "Stores user credentials." "Oracle 12c" :::database
+
+api --> db : "Reads from and writes to" "SQL/TCP" :::async

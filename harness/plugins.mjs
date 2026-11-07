@@ -14,4 +14,14 @@ export const PLUGINS = [
     load: async () => (await import('@mermaid-v13-plugins/diagram-c4')).c4,
     replace: true,
   },
+  {
+    name: '@mermaid-v13-plugins/diagram-c4-beta',
+    load: async () => (await import('@mermaid-v13-plugins/diagram-c4-beta')).c4Beta,
+    replace: false,
+  },
+  {
+    name: '@mermaid-v13-plugins/diagram-c4-beta (v12 theme variables and config key)',
+    load: async () => (await import('@mermaid-v13-plugins/diagram-c4-beta')).c4BetaCompat,
+    replace: false,
+  },
 ];

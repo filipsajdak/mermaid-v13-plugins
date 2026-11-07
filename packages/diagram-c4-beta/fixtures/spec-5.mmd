@@ -1,0 +1,15 @@
+c4-beta deployment
+title Internet Banking System - Deployment
+
+deploymentNode aws "Amazon Web Services" "" "AWS" {
+    deploymentNode region "US-East-1" "" "AWS Region" {
+        deploymentNode ecs "ECS Cluster" "" "AWS ECS" {
+            container api "API Application" "Provides a JSON/HTTPS API." "Java/Spring MVC"
+        }
+        deploymentNode rds "Database Server" "" "AWS RDS" {
+            container db "Database" "Stores user credentials." "Oracle 12c"
+        }
+    }
+}
+
+api --> db : "Reads from and writes to" "SQL/TCP"

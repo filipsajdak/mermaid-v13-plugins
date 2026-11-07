@@ -1,0 +1,8 @@
+c4-beta deployment
+title Internet Banking System - Deployment
+
+deploymentNode dc "Big Bank plc data center" "" "Ubuntu" {
+    deploymentNode web "bigbank-web" "" "Ubuntu" instances "4" {
+        container app "Web Application" "Serves the SPA." "Java/Spring MVC"
+    }
+}

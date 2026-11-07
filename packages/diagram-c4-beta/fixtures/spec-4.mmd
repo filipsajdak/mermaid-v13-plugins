@@ -1,0 +1,11 @@
+c4-beta dynamic
+title Internet Banking System - Sign In
+
+container spa "Single-Page Application" "" "JavaScript/Angular"
+container api "API Application" "" "Java/Spring MVC"
+container db "Database" "" "Oracle 12c"
+
+spa --> api : "Submits credentials to" "JSON/HTTPS"
+api --> db : "Calls select * from users" "SQL/TCP"
+db --> api : "Returns user data to"
+4: api --> spa : "Sends back an authentication token to"

@@ -1,0 +1,11 @@
+c4-beta deployment
+title Internet Banking System - Deployment
+
+deploymentNode dc "Big Bank plc data center" "" "Ubuntu" {
+    infrastructureNode lb "Load Balancer" "Routes traffic to web servers." "nginx"
+    deploymentNode web "Web Server" "" "Ubuntu" {
+        container app "Web Application" "Serves the SPA." "Java/Spring MVC"
+    }
+}
+
+lb --> app : "Forwards requests to" "HTTPS"
