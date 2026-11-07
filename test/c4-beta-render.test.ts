@@ -321,3 +321,21 @@ describe('determinism', () => {
     expect(await once()).toBe(await once());
   });
 });
+
+describe('repeated ids', () => {
+  it('draws the first of two siblings that share an id, and warns', async () => {
+    const r = await render(
+      'c4-beta context\n softwareSystem a "First"\n softwareSystem a "Second"\n',
+    );
+    expect(r.warnings).toEqual(['C4_DUPLICATE_ID']);
+    expect(textOf(r.svg)).toContain('First');
+    expect(textOf(r.svg)).not.toContain('Second');
+  });
+  it('lays out ids that nest into each other across siblings', async () => {
+    const r = await render(
+      'c4-beta context\n group a "A" {\n person b "B"\n }\n group b "B2" {\n person a "A2"\n }\n',
+    );
+    expect(r.warnings).toEqual(['C4_DUPLICATE_ID', 'C4_DUPLICATE_ID']);
+    expect(count(r.svg, 'class="c4-boundary')).toBe(2);
+  });
+});

@@ -199,3 +199,15 @@ describe('config the alpha drops', () => {
     expect(seen).toEqual({ showStereotypes: false, boundaryDirection: 'LR' });
   });
 });
+
+describe('repeated aliases', () => {
+  it('draws a boundary that shares its alias with an element, and warns', async () => {
+    const r = await api.render(
+      'dup',
+      'C4Context\nPerson(a, "Alone")\nBoundary(a, "Box") {\n  Person(p, "Inside")\n}\n',
+    );
+    expect(r.warnings.map((w) => w.code)).toEqual(['C4_DUPLICATE_ID']);
+    expect(r.svg).toContain('Box');
+    expect(r.svg).toContain('Inside');
+  });
+});

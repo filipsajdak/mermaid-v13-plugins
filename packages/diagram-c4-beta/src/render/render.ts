@@ -215,7 +215,9 @@ export function renderC4Beta(
     w.close();
   }
   const styles = new Map(model.styles);
-  const byId = new Map(model.elements.map((e) => [e.id, e]));
+  // The layout keeps the first declaration of a repeated id, so the drawing does too.
+  const byId = new Map<string, C4BetaElement>();
+  for (const e of model.elements) if (!byId.has(e.id)) byId.set(e.id, e);
   for (const g of [...layout.groups].sort((p, q) => p.depth - q.depth)) {
     const e = byId.get(g.id);
     if (!e) continue;
@@ -264,7 +266,7 @@ export function renderC4Beta(
     );
     w.close();
   }
-  for (const e of model.elements)
+  for (const e of byId.values())
     if (!layout.groups.some((g) => g.id === e.id)) drawElement(w, ctx, e, layout, styles, paints);
   for (const { edge, index, text } of rels) {
     if (!edge.block) continue;

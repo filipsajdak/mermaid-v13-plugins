@@ -101,8 +101,35 @@ export const TITLE_PAD = 6;
 /** Room around an edge label: the background it sits on. */
 export const EDGE_LABEL_PAD = 4;
 
+/**
+ * The scene with each id once: groups first, then elements, the first declaration winning, and
+ * a `C4_DUPLICATE_ID` warning for each one left out. The layout engine refuses a repeated id,
+ * and keeping the first of each also keeps the group parents free of cycles.
+ */
+function distinctIds(scene: Scene, ctx: RenderContext): Scene {
+  const seen = new Set<string>();
+  const firsts = <T extends { readonly id: string }>(items: readonly T[]): T[] =>
+    items.filter((item) => {
+      if (!seen.has(item.id)) {
+        seen.add(item.id);
+        return true;
+      }
+      ctx.warn({
+        code: 'C4_DUPLICATE_ID',
+        message: `"${item.id}" is declared more than once; only its first declaration is drawn.`,
+      });
+      return false;
+    });
+  const groups = firsts(scene.groups);
+  const elements = firsts(scene.elements);
+  return groups.length === scene.groups.length && elements.length === scene.elements.length
+    ? scene
+    : { ...scene, groups, elements };
+}
+
 /** Lays a scene out with `ctx.layout`, then puts the title band on top and the margin round. */
-export function layoutScene(scene: Scene, ctx: RenderContext): SceneLayout {
+export function layoutScene(input: Scene, ctx: RenderContext): SceneLayout {
+  const scene = distinctIds(input, ctx);
   const sized = new Map(
     scene.elements.map((e) => [e.id, sizeShape(e.shape, e.block, scene.pad, scene.minWidth)]),
   );
